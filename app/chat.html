@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>孔春春AI工坊 - 文案生成</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: "#9333ea",
+          "primary-dim": "#a533ff",
+          background: "#f5f5f5",
+          surface: "#ffffff",
+          "on-surface": "#333333",
+          "on-surface-variant": "#666666",
+        },
+        fontFamily: {
+          headline: ["Space Grotesk"],
+          body: ["Inter"],
+          label: ["Inter"],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    background-color: #f5f5f5;
+    color: #333;
+    font-family: Inter, sans-serif;
+  }
+  .ghost-border { border: 1px solid rgba(0,0,0,0.08); }
+  .glass-panel {
+    background-color: rgba(255,255,255,0.95);
+    backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(0,0,0,0.05);
+    border-left: 1px solid rgba(0,0,0,0.05);
+  }
+  .msg-user {
+    background: linear-gradient(135deg, #9333ea, #a533ff);
+    color: #fff;
+  }
+  .msg-assistant {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .msg-bubble {
+    max-width: 78%;
+    border-radius: 1.25rem;
+    padding: 0.75rem 1rem;
+    line-height: 1.55;
+    font-size: 0.92rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .reasoning-block {
+    background: rgba(147,51,234,0.05);
+    border-left: 3px solid #c683ff;
+    color: #666;
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.5rem;
+    white-space: pre-wrap;
+  }
+  .typing-dot {
+    width: 6px; height: 6px; background: #9333ea; border-radius: 50%;
+    display: inline-block; margin: 0 2px; animation: blink 1.2s infinite ease-in-out;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
+  .scroll-area::-webkit-scrollbar { width: 6px; }
+  .scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+  /* Agent 模式：模式切换 + 工具卡片 */
+  .mode-switch {
+    display: inline-flex;
+    background: #f3f4f6;
+    border-radius: 9999px;
+    padding: 3px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .mode-switch button {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+    color: #6b7280;
+    transition: all .2s;
+  }
+  .mode-switch button.active {
+    background: linear-gradient(135deg, #9333ea, #a533ff);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(147,51,234,.3);
+  }
+  .tool-card {
+    background: #faf5ff;
+    border: 1px solid rgba(147,51,234,0.18);
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.78rem;
+    color: #6b21a8;
+    margin-bottom: 0.4rem;
+    max-width: 78%;
+    cursor: pointer;
+  }
+  .tool-card .tool-head {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-weight: 600;
+  }
+  .tool-card pre {
+    margin-top: 0.4rem;
+    background: rgba(0,0,0,0.04);
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.4rem;
+    font-size: 0.72rem;
+    color: #4c1d95;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .thought-block {
+    color: #6b7280;
+    font-size: 0.78rem;
+    font-style: italic;
+    padding: 0.4rem 0.6rem;
+    background: rgba(0,0,0,0.025);
+    border-left: 2px solid #c4b5fd;
+    border-radius: 0.4rem;
+    margin-bottom: 0.4rem;
+    max-width: 78%;
+    white-space: pre-wrap;
+  }
+  .tools-popover {
+    position: absolute;
+    top: 64px;
+    right: 16px;
+    width: 320px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    padding: 14px;
+    z-index: 60;
+  }
+  .tools-popover.hidden { display: none; }
+  .tool-item { padding: 8px 0; border-bottom: 1px dashed rgba(0,0,0,.06); font-size: 12px; }
+  .tool-item:last-child { border-bottom: none; }
+  .tool-item .tname { font-weight: 600; color: #6b21a8; font-family: ui-monospace, monospace; }
+  .tool-item .tkind { display:inline-block; padding:1px 6px; border-radius:6px; font-size:10px; margin-left:6px; }
+  .tool-item .tkind.local { background: #dbeafe; color: #1e3a8a; }
+  .tool-item .tkind.mcp { background: #fce7f3; color: #9d174d; }
+  .tool-item .tdesc { color: #6b7280; margin-top: 2px; line-height: 1.4; }
+  .brand-logo { font-family:"Space Grotesk","Microsoft YaHei",sans-serif; font-weight:800; letter-spacing:.02em; background:linear-gradient(135deg,#7c3aed,#ec4899 48%,#06b6d4); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 8px 18px rgba(147,51,234,.18)); }
+</style>
+</head>
+<body class="overflow-hidden h-screen flex flex-col">
+
+<!-- Top Bar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(0,0,0,0.1)] h-16 flex justify-between items-center gap-4 px-4 md:px-10">
+  <div class="flex items-center gap-6 min-w-0 flex-1">
+    <div class="brand-logo text-xl md:text-2xl shrink-0">孔春春AI工坊</div>
+    <nav class="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap font-headline tracking-tight">
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/">图像生成</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/analyze">图片反推</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/video">视频生成</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/?tab=history">作品库</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/templates">提示词模板</a>
+	      <a class="text-purple-600 border-b-2 border-purple-600 pb-1 font-bold cursor-pointer" href="/chat?mode=chat">文案生成</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/chat/history?type=chat">文案历史</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/chat/history?type=agent">助手历史</a>
+	      <a class="text-gray-600 hover:text-gray-900 font-bold cursor-pointer" href="/profile">个人中心</a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-4 shrink-0">
+    <a href="/api/logout" class="text-gray-500 hover:text-purple-600 text-sm flex items-center gap-1">
+      <span class="material-symbols-outlined text-[16px]">logout</span> 退出
+    </a>
+  </div>
+</header>
+
+<div class="flex flex-1 pt-16 h-full w-full">
+
+  <!-- Left Sidebar: Model Info -->
+  <aside class="hidden md:flex flex-col fixed left-0 top-16 h-[calc(100vh-64px)] w-72 bg-white border-r border-gray-200 z-40 p-5 gap-4 overflow-y-auto scroll-area">
+    <div class="rounded-2xl p-4 ghost-border bg-gradient-to-br from-purple-50 to-pink-50">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-purple-600">auto_awesome</span>
+        <h3 class="font-headline font-semibold text-gray-800">当前模型</h3>
+      </div>
+      <div id="model-name" class="text-lg font-bold text-purple-700 font-headline">加载中...</div>
+      <div id="model-id" class="text-xs text-gray-500 mt-1 font-mono break-all">-</div>
+    </div>
+
+    <div class="rounded-2xl ghost-border bg-white p-4">
+      <h4 class="font-headline text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1">
+        <span class="material-symbols-outlined text-cyan-500 text-[16px]">info</span>
+        模型参数
+      </h4>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-gray-500">提供方</span><span id="m-owner" class="text-gray-800 font-medium">-</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">上下文窗口</span><span id="m-ctx" class="text-purple-600 font-bold">-</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">思维链</span><span id="m-reason" class="text-gray-800">-</span></div>
+      </div>
+    </div>
+
+    <div class="rounded-2xl ghost-border bg-white p-4">
+      <h4 class="font-headline text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+        <span class="material-symbols-outlined text-pink-500 text-[16px]">lightbulb</span>
+        能力简介
+      </h4>
+      <p id="m-desc" class="text-xs text-gray-600 leading-relaxed">-</p>
+    </div>
+
+    <div class="rounded-2xl ghost-border bg-white p-4">
+      <h4 class="font-headline text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1">
+        <span class="material-symbols-outlined text-purple-500 text-[16px]">tune</span>
+        生成参数
+      </h4>
+      <div class="space-y-3">
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <label class="text-gray-500">Temperature</label>
+            <span id="temp-val" class="text-purple-600 font-mono">0.7</span>
+          </div>
+          <input id="temp-slider" type="range" min="0" max="2" step="0.1" value="0.7"
+            class="w-full accent-purple-600 h-1 bg-gray-200 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:rounded-full"/>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 mb-1">模型选择</div>
+          <select id="model-select"
+            class="w-full text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-700">
+            <option value="">加载中...</option>
+          </select>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-gray-600">
+          <input id="show-reasoning" type="checkbox" class="rounded text-purple-600 focus:ring-purple-400"/>
+          显示思维链 (reasoning)
+        </label>
+      </div>
+    </div>
+
+    <button id="btn-new" class="mt-auto w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-1">
+      <span class="material-symbols-outlined text-[16px]">add</span>
+      新建对话
+    </button>
+    <button id="btn-clear" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-1">
+      <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+      清空当前对话
+    </button>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main class="flex-1 ml-0 md:ml-72 flex flex-col bg-white h-full overflow-hidden">
+
+    <!-- Chat header -->
+    <div class="px-8 py-4 border-b border-gray-100 flex items-center justify-between relative">
+      <div>
+        <h2 id="page-title" class="font-headline text-lg font-semibold text-gray-800">智能助手对话</h2>
+        <p class="text-xs text-gray-500 mt-0.5">基于 <span id="header-model" class="text-purple-600 font-medium">加载中…</span> · <span id="header-ctx" class="text-gray-500">-</span> · <span id="mode-tag" class="text-purple-600 font-medium">ReAct Agent</span></p>
+      </div>
+      <div class="flex items-center gap-3 text-xs text-gray-500">
+        <div class="mode-switch" role="tablist">
+          <button id="mode-agent" class="active" type="button">智能助手</button>
+          <button id="mode-chat" type="button">文案生成</button>
+        </div>
+        <button id="btn-tools" type="button" class="px-2.5 py-1.5 rounded-full ghost-border bg-white hover:bg-gray-50 text-gray-600 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px] text-purple-600">handyman</span>
+          <span id="tools-count">工具 -</span>
+        </button>
+        <span class="flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span id="status-text">就绪</span>
+        </span>
+      </div>
+
+      <div id="tools-popover" class="tools-popover hidden">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-headline text-sm font-semibold text-gray-800">已加载工具</h4>
+          <button id="tools-close" class="text-gray-400 hover:text-gray-700"><span class="material-symbols-outlined text-[18px]">close</span></button>
+        </div>
+        <div id="tools-list" class="text-sm text-gray-700">加载中...</div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" class="flex-1 overflow-y-auto px-8 py-6 space-y-4 scroll-area">
+      <div id="welcome" class="text-center text-gray-400 text-sm py-12">
+        <span class="material-symbols-outlined text-5xl text-gray-300 block mb-3">smart_toy</span>
+        <div class="font-medium text-gray-500">智能助手已就绪</div>
+        <div class="text-xs mt-1">可联网搜索 · 查询积分 · 调用 ModelScope MCP · 生成图片</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="px-8 pb-6">
+      <div class="glass-panel rounded-2xl p-4 shadow-lg ghost-border">
+        <div class="flex items-end gap-3">
+          <div class="flex-1 bg-white rounded-2xl ghost-border focus-within:border-purple-400 focus-within:shadow-[0_0_15px_rgba(147,51,234,0.1)] transition-all p-1">
+            <textarea id="prompt-input" rows="2" placeholder="问我任何事，例如：帮我搜一下最新的 AI 新闻；查一下我的积分；用 ModelScope 生成一张蓝色赛博朋克城市的图……  (Enter 发送 / Shift+Enter 换行)"
+              class="w-full bg-transparent border-none text-gray-800 text-sm focus:ring-0 resize-none p-3 placeholder:text-gray-400"></textarea>
+          </div>
+          <button id="btn-send" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-headline font-bold flex items-center gap-2 shadow-lg transition-all border-2 border-purple-400 disabled:opacity-50 disabled:cursor-not-allowed">
+            发送
+            <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">send</span>
+          </button>
+        </div>
+        <div class="flex items-center justify-between mt-2 px-1 text-xs text-gray-500">
+          <span id="token-info">-</span>
+          <span class="text-purple-500">免费模型 · 不消耗积分</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('prompt-input');
+const btnSend = document.getElementById('btn-send');
+const btnClear = document.getElementById('btn-clear');
+const tempSlider = document.getElementById('temp-slider');
+const tempVal = document.getElementById('temp-val');
+const modelSelect = document.getElementById('model-select');
+let currentModel = '';
+const showReasoning = document.getElementById('show-reasoning');
+const statusText = document.getElementById('status-text');
+const tokenInfo = document.getElementById('token-info');
+
+let history = []; // 当前模式的 {role, content}
+let sessionId = null; // 当前模式会话 ID
+const modeStates = {
+  agent: { history: [], sessionId: null },
+  chat: { history: [], sessionId: null },
+};
+let mode = 'agent'; // 'agent' | 'chat'
+const modeAgentBtn = document.getElementById('mode-agent');
+const modeChatBtn = document.getElementById('mode-chat');
+const pageTitleEl = document.getElementById('page-title');
+const modeTagEl = document.getElementById('mode-tag');
+const btnTools = document.getElementById('btn-tools');
+const toolsPopover = document.getElementById('tools-popover');
+const toolsListEl = document.getElementById('tools-list');
+const toolsCountEl = document.getElementById('tools-count');
+const urlParams = new URLSearchParams(window.location.search);
+const loadSessionId = urlParams.get('session');
+const initialMode = urlParams.get('mode') === 'chat' ? 'chat' : 'agent';
+mode = initialMode;
+
+// 如果 URL 带 session=xxx 则加载
+if (loadSessionId) {
+  fetch('/api/chat/sessions/' + encodeURIComponent(loadSessionId) + '?type=' + encodeURIComponent(mode)).then(r => r.json()).then(data => {
+    if (data && data.session) {
+      sessionId = data.session.id;
+      history = data.session.messages || [];
+      modeStates[mode] = { history, sessionId };
+      messagesEl.innerHTML = '';
+      for (const m of history) {
+        addMessage(m.role, m.content, m.reasoning, /*skipPush*/ true);
+      }
+      if (history.length === 0) showWelcome();
+    }
+  }).catch(() => {});
+}
+
+function showWelcome() {
+  if (mode === 'agent') {
+    messagesEl.innerHTML = '<div id="welcome" class="text-center text-gray-400 text-sm py-12"><span class="material-symbols-outlined text-5xl text-gray-300 block mb-3">smart_toy</span><div class="font-medium text-gray-500">智能助手已就绪</div><div class="text-xs mt-1">可联网搜索 · 查询积分 · 调用 ModelScope MCP · 生成图片</div></div>';
+  } else {
+    messagesEl.innerHTML = '<div id="welcome" class="text-center text-gray-400 text-sm py-12"><span class="material-symbols-outlined text-5xl text-gray-300 block mb-3">chat_bubble</span>开始与 AI 对话，生成文案、文章、代码等内容</div>';
+  }
+}
+
+// Clean up display name: remove "deepseek/deepseek-" prefix, "(Free)" / "-free" suffixes
+function cleanModelName(name) {
+  if (!name) return '';
+  return name
+    .replace(/^deepseek\/deepseek-?/i, '')
+    .replace(/\s*\(free\)\s*/i, '')
+    .replace(/-?free$/i, '')
+    .trim() || name;
+}
+
+// Load model info
+fetch('/api/chat/model-info').then(r => r.json()).then(info => {
+  const cleanName = cleanModelName(info.display_name || info.id);
+  const cleanId = cleanModelName(info.id);
+  document.getElementById('model-name').textContent = cleanName;
+  document.getElementById('model-id').textContent = cleanId;
+  document.getElementById('m-owner').textContent = info.owned_by || '-';
+  const ctxStr = info.context_length ? info.context_length.toLocaleString() + ' tokens' : '-';
+  document.getElementById('m-ctx').textContent = ctxStr;
+  document.getElementById('m-reason').textContent = info.capabilities && info.capabilities.reasoning ? '✓ 支持' : '✗ 不支持';
+  document.getElementById('m-desc').textContent = info.description || '-';
+  document.getElementById('header-model').textContent = cleanName;
+  const hctx = document.getElementById('header-ctx');
+  if (hctx) hctx.textContent = ctxStr + ' 上下文';
+}).catch(() => {
+  const h = document.getElementById('header-model');
+  if (h) h.textContent = '模型信息加载失败';
+});
+
+tempSlider.addEventListener('input', () => tempVal.textContent = tempSlider.value);
+modelSelect.addEventListener('change', () => { currentModel = modelSelect.value; });
+
+// 加载可选模型列表
+fetch('/api/chat/models').then(r => r.json()).then(data => {
+  const list = (data && data.models) || [];
+  if (!list.length) return;
+  modelSelect.innerHTML = '';
+  for (const m of list) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.label || m.id;
+    modelSelect.appendChild(opt);
+  }
+  currentModel = list[0].id;
+  modelSelect.value = currentModel;
+}).catch(() => {});
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function readErrorMessage(resp, fallback) {
+  try {
+    const data = await resp.clone().json();
+    return data.detail || data.message || fallback;
+  } catch (_) {
+    const text = await resp.text();
+    return (text || fallback).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) || fallback;
+  }
+}
+
+function clearWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function addMessage(role, content, reasoning) {
+  clearWelcome();
+  const wrap = document.createElement('div');
+  wrap.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble ' + (role === 'user' ? 'msg-user' : 'msg-assistant');
+
+  if (role === 'assistant' && reasoning && showReasoning.checked) {
+    const r = document.createElement('div');
+    r.className = 'reasoning-block';
+    r.innerHTML = '<b>💭 思维链：</b>\n' + escapeHtml(reasoning);
+    bubble.appendChild(r);
+  }
+
+  const c = document.createElement('div');
+  c.textContent = content;
+  bubble.appendChild(c);
+
+  wrap.appendChild(bubble);
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return bubble;
+}
+
+function addTypingIndicator() {
+  clearWelcome();
+  const wrap = document.createElement('div');
+  wrap.className = 'flex justify-start';
+  wrap.id = 'typing';
+  wrap.innerHTML = '<div class="msg-bubble msg-assistant"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  history.push({ role: 'user', content: text });
+  addMessage('user', text);
+  inputEl.value = '';
+  btnSend.disabled = true;
+  statusText.textContent = '生成中...';
+
+  if (mode === 'agent') {
+    await sendAgentMessage(text);
+  } else {
+    await sendChatMessage(text);
+  }
+  btnSend.disabled = false;
+  inputEl.focus();
+}
+
+// ---- Agent 模式：SSE 流式渲染 ----
+function ensureAgentBubble() {
+  let host = document.getElementById('agent-stream-host');
+  if (!host) {
+    clearWelcome();
+    host = document.createElement('div');
+    host.id = 'agent-stream-host';
+    host.className = 'flex flex-col items-start gap-1';
+    messagesEl.appendChild(host);
+  }
+  return host;
+}
+
+function appendThought(text) {
+  const host = ensureAgentBubble();
+  const el = document.createElement('div');
+  el.className = 'thought-block';
+  el.textContent = '💭 ' + text;
+  host.appendChild(el);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function appendToolCall(name, input) {
+  const host = ensureAgentBubble();
+  const card = document.createElement('div');
+  card.className = 'tool-card';
+  const inputStr = typeof input === 'string' ? input : JSON.stringify(input, null, 2);
+  card.innerHTML = '<div class="tool-head"><span class="material-symbols-outlined text-[16px]">build</span><span>调用工具：' + escapeHtml(name) + '</span><span class="text-[10px] text-purple-400 ml-auto">运行中…</span></div><pre>' + escapeHtml(inputStr) + '</pre>';
+  host.appendChild(card);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return card;
+}
+
+function appendToolResult(card, result) {
+  if (!card) return;
+  const head = card.querySelector('.tool-head span:last-child');
+  if (head) { head.textContent = '完成 ✓'; head.className = 'text-[10px] text-green-600 ml-auto font-semibold'; }
+  const resStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+  const truncated = resStr.length > 1200 ? resStr.slice(0, 1200) + '\n... [truncated]' : resStr;
+  const pre = document.createElement('pre');
+  pre.style.marginTop = '0.4rem';
+  pre.textContent = truncated;
+  card.appendChild(pre);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function sendAgentMessage(text) {
+  addTypingIndicator();
+  let finalContent = '';
+  // ReAct 流式过滤状态
+  let stepBuf = '';        // 当前 step 累积的所有 token
+  let inFinal = false;     // 是否已进入 Final Answer 段
+  let finalBuf = '';       // Final Answer 后的可见内容
+  let liveBubble = null;
+
+  function resetStepBuffers() {
+    stepBuf = ''; inFinal = false;
+  }
+
+  try {
+    const resp = await fetch('/api/agent/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: history,
+        stream: true,
+        temperature: parseFloat(tempSlider.value),
+        model: currentModel || undefined,
+      })
+    });
+    if (!resp.ok || !resp.body) {
+      removeTyping();
+      const err = await readErrorMessage(resp, '智能助手请求失败，请稍后重试');
+      addMessage('assistant', '⚠️ Agent 错误: ' + err);
+      statusText.textContent = '出错';
+      return;
+    }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (!payload) continue;
+        let evt;
+        try { evt = JSON.parse(payload); } catch { continue; }
+
+        if (evt.type === 'token') {
+          stepBuf += evt.text || '';
+          // 检测 Final Answer 起点
+          if (!inFinal) {
+            const idx = stepBuf.search(/Final Answer\s*:\s*/);
+            if (idx >= 0) {
+              inFinal = true;
+              finalBuf = stepBuf.replace(/^[\s\S]*?Final Answer\s*:\s*/, '');
+              if (!liveBubble) {
+                removeTyping();
+                clearWelcome();
+                const wrap = document.createElement('div');
+                wrap.className = 'flex justify-start';
+                const b = document.createElement('div');
+                b.className = 'msg-bubble msg-assistant';
+                wrap.appendChild(b);
+                messagesEl.appendChild(wrap);
+                liveBubble = b;
+              }
+              liveBubble.textContent = finalBuf;
+              messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+          } else {
+            finalBuf += evt.text || '';
+            if (liveBubble) {
+              liveBubble.textContent = finalBuf;
+              messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+          }
+        } else if (evt.type === 'tool_call') {
+          // 一个 step 结束（隐藏不展示），进入下一个 step
+          resetStepBuffers();
+        } else if (evt.type === 'tool_result') {
+          // 隐藏不展示
+        } else if (evt.type === 'final') {
+          finalContent = evt.text || finalBuf || '';
+          if (liveBubble) {
+            liveBubble.textContent = finalContent;
+          } else if (finalContent) {
+            removeTyping();
+            addMessage('assistant', finalContent);
+          }
+        } else if (evt.type === 'error') {
+          removeTyping();
+          addMessage('assistant', '⚠️ ' + (evt.message || 'agent error'));
+        }
+      }
+    }
+    removeTyping();
+    if (finalContent) {
+      history.push({ role: 'assistant', content: finalContent });
+    } else if (finalBuf) {
+      history.push({ role: 'assistant', content: finalBuf });
+    }
+    const savedContent = finalContent || finalBuf || '';
+    if (savedContent) {
+      try {
+        const saveResp = await fetch('/api/chat/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            session_type: 'agent',
+            messages: history,
+            model: currentModel || 'agent',
+            usage: {},
+          })
+        });
+        const saveData = await saveResp.json();
+        if (saveData.session_id) sessionId = saveData.session_id;
+        modeStates.agent = { history, sessionId };
+      } catch (_) {}
+    }
+    statusText.textContent = '就绪';
+  } catch (e) {
+    removeTyping();
+    addMessage('assistant', '⚠️ 网络错误: ' + e.message);
+    statusText.textContent = '出错';
+  }
+}
+
+// ---- 文案生成(chat) 模式：原逻辑 ----
+async function sendChatMessage(text) {
+  addTypingIndicator();
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: history,
+        temperature: parseFloat(tempSlider.value),
+        model: currentModel || undefined,
+      })
+    });
+    removeTyping();
+    if (!resp.ok) {
+      const err = await readErrorMessage(resp, '文案生成失败，请稍后重试');
+      addMessage('assistant', '⚠️ 错误: ' + err);
+      statusText.textContent = '出错';
+      return;
+    }
+    const data = await resp.json();
+    const content = data.content || '(空响应)';
+    addMessage('assistant', content, data.reasoning);
+    history.push({ role: 'assistant', content, reasoning: data.reasoning || '' });
+    if (data.usage) {
+      tokenInfo.textContent = `本轮 tokens: prompt ${data.usage.prompt_tokens||0} · completion ${data.usage.completion_tokens||0} · total ${data.usage.total_tokens||0}`;
+    }
+    statusText.textContent = '就绪';
+    try {
+      const saveResp = await fetch('/api/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          session_type: 'chat',
+          messages: history,
+          model: data.model,
+          usage: data.usage || {},
+        })
+      });
+	      const saveData = await saveResp.json();
+	      if (saveData.session_id) sessionId = saveData.session_id;
+	      modeStates.chat = { history, sessionId };
+	    } catch (_) {}
+  } catch (e) {
+    removeTyping();
+    addMessage('assistant', '⚠️ 网络错误: ' + e.message);
+    statusText.textContent = '出错';
+  }
+}
+
+function saveModeState() {
+  modeStates[mode] = { history, sessionId };
+}
+
+function renderModeHistory() {
+  messagesEl.innerHTML = '';
+  for (const m of history) {
+    addMessage(m.role, m.content, m.reasoning);
+  }
+  if (history.length === 0) showWelcome();
+}
+
+// ---- 模式切换 ----
+function setMode(m) {
+  const previousMode = mode;
+  if (m !== previousMode) {
+    saveModeState();
+  }
+  mode = m;
+  if (m !== previousMode || history !== modeStates[m].history) {
+    history = modeStates[m].history || [];
+    sessionId = modeStates[m].sessionId || null;
+    renderModeHistory();
+  }
+  if (m === 'agent') {
+    modeAgentBtn.classList.add('active');
+    modeChatBtn.classList.remove('active');
+    pageTitleEl.textContent = '智能助手对话';
+    modeTagEl.textContent = 'ReAct Agent';
+    inputEl.placeholder = '问我任何事，例如：搜一下今天的 AI 新闻；查我的积分；用 ModelScope 生成赛博朋克图……';
+    btnTools.disabled = false;
+    btnTools.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+  } else {
+    modeAgentBtn.classList.remove('active');
+    modeChatBtn.classList.add('active');
+    pageTitleEl.textContent = '文案生成对话';
+    modeTagEl.textContent = '纯对话';
+    inputEl.placeholder = '输入需求，例如：写一篇 200 字的产品宣传文案……';
+    btnTools.disabled = true;
+    btnTools.classList.add('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+    toolsPopover.classList.add('hidden'); // 防止已展开时残留
+  }
+}
+modeAgentBtn.addEventListener('click', () => setMode('agent'));
+modeChatBtn.addEventListener('click', () => setMode('chat'));
+
+// ---- 工具列表 ----
+btnTools.addEventListener('click', () => toolsPopover.classList.toggle('hidden'));
+document.getElementById('tools-close').addEventListener('click', () => toolsPopover.classList.add('hidden'));
+fetch('/api/agent/tools').then(r => r.json()).then(data => {
+  const tools = data.tools || [];
+  toolsCountEl.textContent = '工具 ' + tools.length;
+  if (tools.length === 0) { toolsListEl.innerHTML = '<div class="text-gray-400">暂无工具</div>'; return; }
+  toolsListEl.innerHTML = tools.map(t => {
+    const kind = t.kind === 'mcp' ? 'mcp' : 'local';
+    const label = t.kind === 'mcp' ? 'MCP' : '本地';
+    return '<div class="tool-item"><span class="tname">' + escapeHtml(t.name) + '</span><span class="tkind ' + kind + '">' + escapeHtml(label) + '</span><div class="tdesc">' + escapeHtml(t.description || '') + '</div></div>';
+  }).join('');
+}).catch(() => { toolsListEl.innerHTML = '<div class="text-red-400">加载失败</div>'; toolsCountEl.textContent = '工具 ✗'; });
+
+btnSend.addEventListener('click', sendMessage);
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+btnClear.addEventListener('click', () => {
+  if (!confirm('确认清空当前对话？')) return;
+  history = [];
+  sessionId = null;
+  modeStates[mode] = { history, sessionId };
+  showWelcome();
+  tokenInfo.textContent = '-';
+});
+
+document.getElementById('btn-new').addEventListener('click', () => {
+  history = [];
+  sessionId = null;
+  modeStates[mode] = { history, sessionId };
+  showWelcome();
+  tokenInfo.textContent = '-';
+  // 清掉 URL 上的 session 参数
+  if (window.location.search) window.history.replaceState({}, '', '/chat?mode=' + encodeURIComponent(mode));
+  inputEl.focus();
+});
+
+setMode(initialMode);
+</script>
+</body>
+</html>

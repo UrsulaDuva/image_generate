@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>提示词模板 - 孔春春AI工坊</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+    body {
+        background-color: #f5f5f5;
+        font-family: 'Inter', sans-serif;
+    }
+    .carousel-container {
+        position: relative;
+        overflow: hidden;
+    }
+    .carousel-track {
+        display: flex;
+        transition: transform 0.5s ease-in-out;
+    }
+    .carousel-item {
+        flex: 0 0 calc(100% / 3);
+        padding: 15px;
+    }
+    .prompt-card {
+        border-radius: 1rem;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        aspect-ratio: 3/4;
+    }
+    .prompt-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 10px 30px rgba(147, 51, 234, 0.2);
+    }
+    .prompt-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        z-index: 100;
+        display: none;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-overlay.active {
+        display: flex;
+    }
+    .modal-content {
+        background: white;
+        border-radius: 1.5rem;
+        max-width: 700px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 24px;
+        animation: modalPop 0.3s ease;
+    }
+    @keyframes modalPop {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+    .dots-container {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 16px;
+    }
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #d0d0d0;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+	    .dot.active {
+	        background: #9333ea;
+	    }
+	    .brand-logo {
+	        font-family: "Space Grotesk", "Microsoft YaHei", sans-serif;
+	        font-weight: 800;
+	        letter-spacing: 0.02em;
+	        background: linear-gradient(135deg, #7c3aed, #ec4899 48%, #06b6d4);
+	        -webkit-background-clip: text;
+	        background-clip: text;
+	        color: transparent;
+	        filter: drop-shadow(0 8px 18px rgba(147,51,234,.18));
+	    }
+</style>
+</head>
+<body class="min-h-screen">
+<!-- Header -->
+<header class="fixed top-0 w-full bg-white/80 backdrop-blur-xl shadow-sm z-50">
+    <div class="px-4 md:px-6 py-4 flex items-center justify-between gap-4">
+	        <a href="/" class="brand-logo text-xl shrink-0">
+	            孔春春AI工坊
+	        </a>
+	        <nav class="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap">
+	            <a href="/" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">图像生成</a>
+	            <a href="/analyze" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">图片反推</a>
+	            <a href="/video" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">视频生成</a>
+	            <a href="/?tab=history" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">作品库</a>
+	            <a href="#" class="text-purple-600 font-bold">提示词模板</a>
+	            <a href="/chat?mode=chat" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">文案生成</a>
+	            <a href="/chat/history?type=chat" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">文案历史</a>
+	            <a href="/chat/history?type=agent" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">助手历史</a>
+            <a href="/profile" class="text-gray-600 hover:text-purple-600 font-bold transition-colors">个人中心</a>
+            <a href="/api/logout" class="text-gray-500 hover:text-purple-600 text-sm flex items-center gap-1 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">logout</span>
+                退出
+            </a>
+        </nav>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 pt-24 pb-8">
+    <!-- Title Section -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 font-['Space_Grotesk']">提示词模板库</h1>
+        <p class="text-gray-500">精选优质提示词，点击图片查看并复制使用</p>
+    </div>
+
+    <!-- Carousel Section -->
+    <div class="carousel-container mb-8">
+        <div class="carousel-track" id="carousel-track">
+            <!-- 动态加载内容 -->
+        </div>
+    </div>
+
+    <!-- Dots Navigation -->
+    <div class="dots-container" id="dots-container"></div>
+
+    <!-- Navigation Buttons -->
+    <div class="flex justify-center gap-4 mt-6">
+        <button id="prev-btn" class="bg-white px-6 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-gray-700">
+            <span class="material-symbols-outlined">arrow_back</span>
+            上一页
+        </button>
+        <button id="next-btn" class="bg-purple-600 text-white px-6 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+            下一页
+            <span class="material-symbols-outlined">arrow_forward</span>
+        </button>
+    </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="prompt-modal">
+    <div class="modal-content">
+        <div class="relative">
+            <button id="close-modal" class="absolute top-0 right-0 text-gray-400 hover:text-gray-600">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <img id="modal-image" class="w-full rounded-2xl mb-4 max-h-[50vh] object-contain bg-gray-50" alt="示例图"/>
+            <div class="bg-gray-50 rounded-2xl p-4 mb-4">
+                <label class="text-sm text-gray-500 mb-2 block">提示词</label>
+                <p id="modal-prompt" class="text-gray-800 leading-relaxed whitespace-pre-wrap"></p>
+            </div>
+            <div class="flex gap-3">
+                <button id="copy-prompt" class="flex-1 bg-purple-600 text-white py-3 rounded-2xl font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">content_copy</span>
+                    复制提示词
+                </button>
+                <button id="use-prompt" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">edit</span>
+                    使用此提示词
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-white border-t border-gray-100 mt-16 py-8">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="flex items-center justify-between">
+            <p class="text-gray-500 text-sm">
+                提示词来源：<a href="https://nanobanana.lsshirtai.com/" target="_blank" class="text-purple-600 hover:underline">Nano Banana AI提示词库</a>
+            </p>
+            <a href="https://nanobanana.lsshirtai.com/" target="_blank" class="bg-purple-100 text-purple-600 px-4 py-2 rounded-2xl hover:bg-purple-200 transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined">open_in_new</span>
+                访问原网站
+            </a>
+        </div>
+    </div>
+</footer>
+
+<script>
+// ============================================
+// 提示词数据（匹配本地图片）
+// ============================================
+const promptTemplates = [
+    {
+        id: 1,
+        image: "/template_images/1.jpeg",
+        prompt: "创作一幅高度精细的微缩超现实场景，场景中微小的人物与附图所示的[此处插入品牌和产品名称]产品进行逼真的互动。这些人物应表现得仿佛产品就是他们的整个世界，所有视觉元素都应自然而然地适应产品的形态和特性，没有任何预设的前提。确保人物与产品之间的互动能够巧妙而连贯地体现品牌的形象和预期用途，并采用简洁的视觉构图和极简的背景。运用电影级的灯光、清晰的阴影和锐利的摄影技巧，将[品牌名称]的标志无缝融入场景，并添加一句能够自动适应产品语境的简短标语。要求：1:1 – 超精细 – 照片级写实 – 简洁专业的制作。",
+        title: "微缩超现实场景"
+    },
+    {
+        id: 2,
+        image: "/template_images/2.jpeg",
+        prompt: "Create an OOTD collage image.\n\n【构图要求】\n- 左侧放置全身或半身照片的主角（时尚街拍风）\n- 右侧以白底排版列出所有单品\n- 每件单品包含：物品图、品牌名、中文品名、价格\n- 布局整洁、有呼吸感，时尚杂志风格\n\n【视觉风格】\n- 明亮自然街拍光线\n- 真实质感的衣物贴图，呈现清晰材质\n- 右侧采用电商风格白底商品照\n- 字体干净现代（类似无衬线字体）\n- 整体专业、极简、精致\n\n【人物说明】\n- 女性角色，时髦、有气质\n- 穿着：灰色短款针织、条纹衬衫、牛仔外套、深蓝短裙、黑色单鞋（可替换）\n- 造型自然，像真人街拍\n\n【单品列表排版】\n- 以独立小模块方式呈现每件单品\n- 每件单品包括：商品照（剪影风）、品牌名、品名、价格\n\n【整体风格方向】\n- 像小红书/微博时尚博主常用的 OOTD 拼贴\n- 风格年轻、日常、好看、实用\n- 色调统一且具有品牌感",
+        title: "OOTD时尚拼贴"
+    },
+    {
+        id: 3,
+        image: "/template_images/3.jpeg",
+        prompt: "以超写实风格，从高角度捕捉一张自然随性的抓拍照片：年轻的亚洲女生蹲坐在水泥地的庭院中，侧身向后回望，目光微微上扬对视镜头；她嘴唇紧闭，带着害羞含蓄的笑容，眼睛大而明亮、圆润，明显的卧蚕衬托出俏皮可爱的神情。肌肤瓷白细腻，散发着自然的柔光。她穿着一件鼠尾草绿的针织露背长袖上衣，袖子覆盖着手掌，下身搭配牛仔短裤，赤脚穿着棕褐色凉鞋。一只手臂向外舒展，正在与旁边栓着绳子的姜黄色猫咪互动，身旁放着一张覆盖粉色民族风桌布的木质桌子。图片呈现8K分辨率，风格真实、细节丰富。",
+        title: "超写实抓拍"
+    },
+    {
+        id: 4,
+        image: "/template_images/4.jpeg",
+        prompt: "创作一张手绘风格的信息图卡片，比例为9:16竖版。卡片主题鲜明，背景为带有纸质肌理的米色或米白色，整体设计体现质朴、亲切的手绘美感。\n\n卡片上方以红黑相间、对比鲜明的大号毛笔草书字体突出标题，吸引视觉焦点。文字内容均采用中文草书，整体布局分为2至4个清晰的小节，每节以简短、精炼的中文短语表达核心要点。字体保持草书流畅的韵律感，既清晰可读又富有艺术气息。\n\n卡片中点缀简单、有趣的手绘插画或图标，例如人物或象征符号，以增强视觉吸引力，引发读者思考与共鸣。整体布局注意视觉平衡，预留足够的空白空间，确保画面简洁明了，易于阅读和理解。\n\n主题是：\"做IP是长期复利，坚持每日出摊，持续做，肯定会有结果，因为99%都坚持不住的。\"",
+        title: "手绘信息图卡片"
+    },
+    {
+        id: 5,
+        image: "/template_images/5.jpeg",
+        prompt: "创作一幅极具科技感的3D立体剖面信息图，旨在展示现代商用喷气式飞机的内部结构与运作原理。图面以高度还原和精细化的方式呈现，将飞机主体（包括机身、机翼、尾翼及重点展示的涡扇发动机）进行半拆解式的剖面处理，揭示其复杂的内在构造。关键零部件（例如：驾驶舱航电系统、客舱框架、货舱、燃油箱、机翼翼肋/翼梁、发动机压气机/涡轮、起落架机械装置等）被有序地拆解、悬浮排列，并用引导线连接至主体。每个主要部分都配有清晰、专业的英文标注，明确注明结构名称及其简洁的功能描述。整体布局追求极致的整洁与逻辑性，背景干净，风格宛如一张未来的交互式高级工程蓝图。",
+        title: "飞机剖面信息图"
+    },
+    {
+        id: 6,
+        image: "/template_images/6.jpeg",
+        prompt: "Editorial 3x3 photo grid in a clean soft beige studio. Character (matches reference 100%) wearing lightweight dark navy shirt, ivory trousers, barefoot for raw simplicity. Lighting: large diffused key light directly front-right, silver reflector left, subtle rim from top. Shots to include: 1. extreme close-up of lips + cheekbone with blurred hand partially covering (85mm, f/1.8, razor-thin DOF); 2. tight crop on eyes looking into lens with reflection of light strip visible (85mm, f/2.0); 3. black & white close portrait resting chin on fist, face filling frame (50mm, f/2.2); 4. over-shoulder shot, blurred foreground fabric curtain framing half face (85mm, f/2.0); 5. very close frontal with hands overlapping face, light streak across eyes (50mm, f/2.5); 6. tight angled portrait showing hair falling into eyes, soft-focus background (85mm, f/2.2); 7. crop of hands touching jawline, eyes cropped out (50mm, f/3.2, detail-focused); 8. half-body seated sideways on low cube, head turned sharply away, blurred foreground (35mm, f/4.5); 9. intense close-up of profile with single tear-like water droplet, cinematic light slice across (85mm, f/1.9). Angles: mostly tight headshots with slight high/low tilts, maintaining variation. Capture RAW, professional muted grade, smooth tonal contrast, subtle cinematic grain. Mood: intimate, introspective, character-led editorial minimalism with delicate use of fabric as prop.",
+        title: "Editorial 3x3 Grid"
+    },
+    {
+        id: 7,
+        image: "/template_images/7.jpeg",
+        prompt: "A full-body hyper-realistic studio portrait of [CHARACTER DESCRIPTION] in a [POSE TYPE] pose, sitting gracefully on a large [OBJECT] positioned [ORIENTATION: horizontal / vertical] on a smooth [BACKGROUND COLOR] floor. The object appears oversized and realistic, perfectly integrated with the subject — not floating. Its surface shows accurate texture, reflections, and material depth. The pose defines the subject's attitude and interaction with the object — natural, stylish, and expressive. The character is balanced and confident, matching the object's tone and style. Background is seamless, same color for wall and floor, slightly lighter below with soft reflections. Lighting: clean professional studio setup — diffused key from front-left, mild fill from right, subtle rim for separation, evenly balanced exposure. Mood: cinematic luxury editorial with minimal composition and photorealistic realism.",
+        title: "Studio Portrait Template"
+    },
+    {
+        id: 8,
+        image: "/template_images/8.jpeg",
+        prompt: "A hyper-realistic portrait of a young man sitting on large, smooth white rocky formations under natural sunlight. He is wearing a loose, slightly crumpled beige linen shirt with the top buttons open, paired with white trousers. His outfit gives a relaxed, Mediterranean vibe.\n\nHe is leaning back, one arm resting on the rock, and the other hand on his knee, looking slightly to the side. He wears slim black rectangular sunglasses. His hairstyle is short, slightly messy, and the sunlight casts soft shadows across his outfit and the textured rocks.\n\nThe overall atmosphere is calm, stylish, and Mediterranean-inspired. The face should match exactly with the reference photo.",
+        title: "Mediterranean Portrait"
+    },
+    {
+        id: 9,
+        image: "/template_images/9.jpeg",
+        prompt: "A massive spiral vortex tears through storm clouds above a futuristic illuminated city, revealing blue sky beyond a visual metaphor for artificial general intelligence breaking through the turbulence of current limitations to reach clarity beyond human comprehension.",
+        title: "AI Vortex Metaphor"
+    },
+    {
+        id: 10,
+        image: "/template_images/10.jpeg",
+        prompt: "Photorealistic conceptual food art portrait, a minimalist representation of a [SITE OF THE HOUSE] recreated entirely with [TYPE OF FOOD]. The main structure is built from [MAIN INGREDIENTS], with details such as [KEY ELEMENTS] made from [SECONDARY INGREDIENTS]. Optional features include [ADDITIONAL OBJECTS OR FURNITURE] created from [EXTRA INGREDIENTS].\n\nSet against a [COLOR] background to emphasize the surreal food sculpture. Bright soft studio lighting, evenly diffused, casting subtle natural shadows that highlight the textures of [FOOD TEXTURES]. Fine atmospheric detail enhance realism.\n\nCaptured with a Canon EOS 5D, 85mm f/1.8 lens, shallow depth of field focusing on the cake-bed sculpture, crisp detail with soft falloff in the background. Composition framed at tabletop eye-level, medium close-up, perfectly centered. Clean high-resolution food photography style, vibrant natural colors, editorial dessert photography aesthetic",
+        title: "Food Art Portrait"
+    },
+    {
+        id: 11,
+        image: "/template_images/11.png",
+        prompt: "Crea un render 3D fotorrealista de este logo hecho con hilo grueso y tejido a mano. El hilo debe parecer suave, esponjoso y de gran tamaño, con patrones visibles de tejido como bucles, giros y trenzas. Usa colores brillantes y saturados, estética cálida. Resalta la textura de las fibras, la suavidad del material y el acabado artesanal. Iluminación de estudio suave. Fondo blanco o crema limpio. El logo debe estar centrado y sin elementos adicionales. Cuadrado.",
+        title: "3D Knitted Logo"
+    },
+    {
+        id: 12,
+        image: "/template_images/12.jpeg",
+        prompt: "\"{BRAND or PRODUCT NAME}\" — surreal minimal conceptual advertisement\nCreate a 1:1 high-resolution poster that reimagines the brand/product as a surreal object of desire using minimal elements and symbolic storytelling.\n\n• Visual Style: ultra-clean background (light or muted tone), soft lighting, strong negative space\n• Scene Concept: transform the essence of the product into a metaphorical or dreamlike scene\n• Add a short, punchy slogan (2–3 words) that emotionally resonates with the concept\n• Include the brand's logo in a clean, modern style (integrated naturally into the layout)\n• Composition: centered or rule-of-thirds alignment, use shadows and depth tastefully\n• Mood: artistic, elegant, and thought-provoking — like a museum installation\n• No clutter, no realism overload — just conceptual clarity",
+        title: "Surreal Brand Poster"
+    }
+];
+
+// ============================================
+// Carousel状态
+// ============================================
+let currentIndex = 0;
+const itemsPerView = 3;
+const totalItems = promptTemplates.length;
+const totalPages = Math.ceil(totalItems / itemsPerView);
+
+// ============================================
+// 初始化
+// ============================================
+async function init() {
+    // 验证登录状态
+    try {
+        const res = await fetch('/api/verify');
+        const data = await res.json();
+        if (!data.valid) {
+            window.location.href = '/login';
+            return;
+        }
+    } catch (e) {
+        window.location.href = '/login';
+        return;
+    }
+
+    renderCarousel();
+    renderDots();
+    setupEventListeners();
+    startAutoPlay();
+}
+
+function renderCarousel() {
+    const track = document.getElementById('carousel-track');
+    track.innerHTML = promptTemplates.map(item => `
+        <div class="carousel-item">
+            <div class="prompt-card bg-white shadow-md" onclick="openModal(${item.id})">
+                <img src="${item.image}" alt="${item.title}"/>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderDots() {
+    const container = document.getElementById('dots-container');
+    container.innerHTML = Array(totalPages).fill(0).map((_, i) => `
+        <div class="dot ${i === 0 ? 'active' : ''}" onclick="goToPage(${i})"></div>
+    `).join('');
+}
+
+function setupEventListeners() {
+    document.getElementById('prev-btn').addEventListener('click', () => {
+        goToPage(currentIndex - 1);
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+        goToPage(currentIndex + 1);
+    });
+
+    document.getElementById('close-modal').addEventListener('click', closeModal);
+
+    document.getElementById('prompt-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'prompt-modal') closeModal();
+    });
+
+    document.getElementById('copy-prompt').addEventListener('click', copyPrompt);
+    document.getElementById('use-prompt').addEventListener('click', usePrompt);
+}
+
+function goToPage(index) {
+    if (index < 0) index = totalPages - 1;
+    if (index >= totalPages) index = 0;
+
+    currentIndex = index;
+    const track = document.getElementById('carousel-track');
+    const offset = -(index * itemsPerView * (100 / itemsPerView));
+    track.style.transform = `translateX(${offset}%)`;
+
+    updateDots();
+}
+
+function updateDots() {
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentIndex);
+    });
+}
+
+function openModal(id) {
+    const item = promptTemplates.find(p => p.id === id);
+    if (!item) return;
+
+    document.getElementById('modal-image').src = item.image;
+    document.getElementById('modal-prompt').textContent = item.prompt;
+    document.getElementById('prompt-modal').classList.add('active');
+    document.getElementById('prompt-modal').dataset.id = id;
+}
+
+function closeModal() {
+    document.getElementById('prompt-modal').classList.remove('active');
+}
+
+function copyPrompt() {
+    const prompt = document.getElementById('modal-prompt').textContent;
+    navigator.clipboard.writeText(prompt).then(() => {
+        alert('提示词已复制到剪贴板！');
+    });
+}
+
+function usePrompt() {
+    const prompt = document.getElementById('modal-prompt').textContent;
+    localStorage.setItem('selected_prompt', prompt);
+    window.location.href = '/';
+}
+
+// 自动轮播
+let autoPlayInterval;
+function startAutoPlay() {
+    autoPlayInterval = setInterval(() => {
+        goToPage(currentIndex + 1);
+    }, 5000);
+}
+
+function stopAutoPlay() {
+    clearInterval(autoPlayInterval);
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

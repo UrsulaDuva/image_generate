@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>管理员审核 - 孔春春AI工坊</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+    body {
+        background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+        font-family: 'Inter', sans-serif;
+    }
+    .card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+    .btn-approve {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+    }
+    .btn-reject {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+</style>
+</head>
+<body class="min-h-screen">
+<!-- Header -->
+<header class="fixed top-0 w-full bg-white/80 backdrop-blur-xl shadow-sm z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-purple-600 text-2xl">admin_panel_settings</span>
+            <span class="text-xl font-bold text-gray-800 font-['Space_Grotesk']">管理员控制台</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="admin-name" class="text-sm text-gray-600"></span>
+            <a href="/api/logout" class="text-gray-500 hover:text-purple-600 text-sm flex items-center gap-1 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">logout</span>
+                退出
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 pt-24 pb-8">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="card p-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-yellow-500 text-3xl">pending</span>
+                <div>
+                    <p class="text-sm text-gray-500">待审核</p>
+                    <p id="pending-count" class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="card p-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-green-500 text-3xl">check_circle</span>
+                <div>
+                    <p class="text-sm text-gray-500">已通过</p>
+                    <p id="approved-count" class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="card p-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-purple-500 text-3xl">account_balance_wallet</span>
+                <div>
+                    <p class="text-sm text-gray-500">用户当前积分</p>
+                    <p id="user-credits" class="text-2xl font-bold text-purple-600">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Info Section -->
+    <div class="card p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-purple-500">person</span>
+            用户信息
+        </h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500">用户账号</p>
+                <p id="primary-user-name" class="text-lg font-semibold text-gray-800">-</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">密码状态</p>
+                <p class="text-lg font-semibold text-green-600">已加密保存</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New User Section -->
+    <div class="card p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-cyan-500">person_add</span>
+            新增账号
+        </h2>
+        <div class="flex gap-4">
+            <div class="flex-1">
+                <label class="block text-sm text-gray-600 mb-1">账号</label>
+                <input type="text" id="new-username" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl outline-none focus:border-purple-500" placeholder="请输入账号"/>
+            </div>
+            <div class="flex-1">
+                <label class="block text-sm text-gray-600 mb-1">密码</label>
+                <input type="password" id="new-password" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl outline-none focus:border-purple-500" placeholder="请输入密码"/>
+            </div>
+            <div class="flex-1">
+                <label class="block text-sm text-gray-600 mb-1">初始积分</label>
+                <input type="number" id="new-credits" value="50" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl outline-none focus:border-purple-500" placeholder="初始积分"/>
+            </div>
+            <button onclick="addNewUser()" class="mt-auto bg-gradient-to-r from-cyan-500 to-purple-500 text-white px-6 py-2 rounded-xl font-semibold hover:opacity-90 transition-opacity flex items-center gap-2">
+                <span class="material-symbols-outlined">add</span>
+                添加
+            </button>
+        </div>
+        <div id="add-user-error" class="hidden mt-2 text-red-500 text-sm"></div>
+    </div>
+
+    <!-- All Users List -->
+    <div class="card p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-500">group</span>
+            所有账号
+        </h2>
+        <div id="users-list" class="space-y-2">
+            <!-- 动态加载 -->
+        </div>
+    </div>
+
+    <!-- Pending Applications -->
+    <div class="card p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-yellow-500">hourglass_empty</span>
+            待审核申请
+        </h2>
+        <div id="pending-list" class="space-y-4">
+            <!-- 动态加载 -->
+        </div>
+    </div>
+
+    <!-- Approved Applications -->
+    <div class="card p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-500">history</span>
+            已处理申请
+        </h2>
+        <div id="history-list" class="space-y-4">
+            <!-- 动态加载 -->
+        </div>
+    </div>
+</main>
+
+<script>
+const API_BASE = window.location.origin;
+
+// 验证管理员身份
+async function checkAdmin() {
+    try {
+        const res = await fetch(`${API_BASE}/api/verify`);
+        const data = await res.json();
+        if (!data.valid || data.username !== 'admin') {
+            window.location.href = '/login';
+            return;
+        }
+        document.getElementById('admin-name').textContent = `管理员: ${data.username}`;
+    } catch (e) {
+        window.location.href = '/login';
+    }
+}
+
+// 获取用户积分
+async function getUserCredits() {
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/user-credits`);
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('user-credits').textContent = data.credits;
+            document.getElementById('primary-user-name').textContent = data.username || '暂无普通用户';
+        }
+    } catch (e) {
+        console.error('获取积分失败');
+    }
+}
+
+// 获取待审核申请
+async function getPendingApplications() {
+    try {
+        const res = await fetch(`${API_BASE}/api/credits/pending`);
+        const data = await res.json();
+        document.getElementById('pending-count').textContent = data.applications.length;
+        renderApplications(data.applications, 'pending-list', true);
+    } catch (e) {
+        console.error('获取待审核失败');
+    }
+}
+
+// 获取已处理申请
+async function getProcessedApplications() {
+    try {
+        const res = await fetch(`${API_BASE}/api/credits/processed`);
+        const data = await res.json();
+        const approved = data.applications.filter(a => a.status === 'approved');
+        document.getElementById('approved-count').textContent = approved.length;
+        renderApplications(data.applications, 'history-list', false);
+    } catch (e) {
+        console.error('获取已处理失败');
+    }
+}
+
+// 渲染申请列表
+function renderApplications(applications, containerId, showActions) {
+    const container = document.getElementById(containerId);
+
+    if (applications.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-center py-4">暂无数据</p>`;
+        return;
+    }
+
+    container.innerHTML = applications.map(app => `
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+            <div class="flex-1">
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-outlined text-purple-500">person</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">${app.username}</p>
+                        <p class="text-sm text-gray-500">${app.timestamp}</p>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                    <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-xs">${app.type}</span>
+                    <span class="text-gray-600">× ${app.count}</span>
+                    <span class="text-green-600 font-semibold">= +${app.credits_to_add} 积分</span>
+                </div>
+            </div>
+            ${showActions ? `
+                <div class="flex gap-2">
+                    <button onclick="approveApplication('${app.id}')" class="btn-approve text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">check</span>
+                        批准
+                    </button>
+                    <button onclick="rejectApplication('${app.id}')" class="btn-reject text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">close</span>
+                        拒绝
+                    </button>
+                </div>
+            ` : `
+                <span class="px-3 py-1 rounded-full text-xs font-semibold ${app.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+                    ${app.status === 'approved' ? '已通过' : '已拒绝'}
+                </span>
+            `}
+        </div>
+    `).join('');
+}
+
+// 批准申请
+async function approveApplication(id) {
+    try {
+        const res = await fetch(`${API_BASE}/api/credits/approve/${id}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('已批准，积分已增加！');
+            refreshAll();
+        } else {
+            alert(data.message || '操作失败');
+        }
+    } catch (e) {
+        alert('操作失败');
+    }
+}
+
+// 拒绝申请
+async function rejectApplication(id) {
+    if (!confirm('确认拒绝此申请？')) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/credits/reject/${id}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('已拒绝');
+            refreshAll();
+        } else {
+            alert(data.message || '操作失败');
+        }
+    } catch (e) {
+        alert('操作失败');
+    }
+}
+
+// 刷新所有数据
+function refreshAll() {
+    getUserCredits();
+    getPendingApplications();
+    getProcessedApplications();
+    getAllUsers();
+}
+
+// 获取所有账号
+async function getAllUsers() {
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/all-users`);
+        const data = await res.json();
+        if (data.success) {
+            renderUsersList(data.users);
+        }
+    } catch (e) {
+        console.error('获取账号列表失败');
+    }
+}
+
+// 渲染账号列表
+function renderUsersList(users) {
+    const container = document.getElementById('users-list');
+    container.innerHTML = users.map(user => `
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-purple-500">account_circle</span>
+                <span class="font-semibold text-gray-800">${user.username}</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-gray-500">密码: ${user.password_status || '已加密'}</span>
+                <span class="text-sm text-purple-600">积分: ${user.credits}</span>
+                ${user.username !== 'admin' ? `<button onclick="editUserCredits('${user.username}', ${user.credits})" class="text-blue-500 hover:text-blue-700 text-sm">修改积分</button>` : ''}
+                ${user.username !== 'admin' ? `<button onclick="deleteUser('${user.username}')" class="text-red-500 hover:text-red-700 text-sm">删除</button>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+// 新增账号
+async function addNewUser() {
+    const username = document.getElementById('new-username').value.trim();
+    const password = document.getElementById('new-password').value.trim();
+    const credits = parseInt(document.getElementById('new-credits').value, 10) || 50;
+    const errorEl = document.getElementById('add-user-error');
+
+    errorEl.classList.add('hidden');
+
+    if (!username) {
+        errorEl.textContent = '请输入账号';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    if (!password) {
+        errorEl.textContent = '请输入密码';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    if (password.length < 6) {
+        errorEl.textContent = '密码至少6位';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/add-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, credits })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert('账号添加成功！');
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('new-credits').value = '50';
+            refreshAll();
+        } else {
+            errorEl.textContent = data.message || '添加失败';
+            errorEl.classList.remove('hidden');
+        }
+    } catch (e) {
+        errorEl.textContent = '网络错误';
+        errorEl.classList.remove('hidden');
+    }
+}
+
+// 修改用户积分
+async function editUserCredits(username, currentCredits) {
+    const input = prompt(`修改 ${username} 的积分（当前 ${currentCredits}）：\n输入新的积分值（绝对值，非增量）`, currentCredits);
+    if (input === null) return;
+    const newCredits = parseInt(input, 10);
+    if (isNaN(newCredits) || newCredits < 0) {
+        alert('请输入非负整数');
+        return;
+    }
+    if (newCredits === currentCredits) return;
+    const reason = prompt('备注（可选，会写入积分流水）：', '') || '';
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/set-user-credits`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, credits: newCredits, reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`已更新：${currentCredits} → ${newCredits}（${data.delta > 0 ? '+' : ''}${data.delta}）`);
+            refreshAll();
+        } else {
+            alert(data.message || '更新失败');
+        }
+    } catch (e) {
+        alert('网络错误');
+    }
+}
+
+// 删除账号
+async function deleteUser(username) {
+    if (!confirm(`确认删除账号 ${username}？此操作不可恢复！`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/delete-user/${username}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+            alert('账号已删除');
+            refreshAll();
+        } else {
+            alert(data.message || '删除失败');
+        }
+    } catch (e) {
+        alert('网络错误');
+    }
+}
+
+// 初始化
+    document.addEventListener('DOMContentLoaded', async () => {
+    await checkAdmin();
+    refreshAll();
+
+    // 每30秒刷新
+    setInterval(refreshAll, 30000);
+});
+</script>
+</body>
+</html>

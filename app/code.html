@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>孔春春AI工坊 - AI图像生成</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#430033",
+                        "inverse-primary": "#8d00e6",
+                        "tertiary-fixed-dim": "#ff6dce",
+                        "primary-fixed": "#c683ff",
+                        "on-secondary": "#004d57",
+                        "inverse-on-surface": "#555459",
+                        "secondary-fixed": "#26e6ff",
+                        "secondary-container": "#006875",
+                        "tertiary-container": "#fd00c6",
+                        "secondary-fixed-dim": "#00d7f0",
+                        "inverse-surface": "#1a1a1a",
+                        "secondary": "#00e3fd",
+                        "on-error-container": "#ffb2b9",
+                        "outline": "#9e9e9e",
+                        "on-tertiary-container": "#000000",
+                        "primary-dim": "#a533ff",
+                        "surface-dim": "#e8e8e8",
+                        "tertiary-fixed": "#ff88d3",
+                        "outline-variant": "#d0d0d0",
+                        "on-error": "#490013",
+                        "secondary-dim": "#00d4ec",
+                        "on-secondary-fixed-variant": "#005964",
+                        "primary": "#9333ea",
+                        "surface": "#ffffff",
+                        "error-container": "#a70138",
+                        "on-primary": "#ffffff",
+                        "error": "#ff6e84",
+                        "error-dim": "#d73357",
+                        "surface-container-low": "#f0f0f0",
+                        "tertiary-dim": "#ff60cd",
+                        "primary-fixed-dim": "#bc6fff",
+                        "on-tertiary-fixed-variant": "#700056",
+                        "surface-container": "#e8e8e8",
+                        "on-tertiary-fixed": "#350027",
+                        "background": "#f5f5f5",
+                        "tertiary": "#ff60cd",
+                        "on-secondary-container": "#e8fbff",
+                        "surface-tint": "#9333ea",
+                        "on-surface-variant": "#666666",
+                        "on-primary-container": "#37005f",
+                        "surface-variant": "#e0e0e0",
+                        "on-secondary-fixed": "#003a42",
+                        "on-surface": "#333333",
+                        "on-background": "#333333",
+                        "on-primary-fixed": "#ffffff",
+                        "surface-container-highest": "#d8d8d8",
+                        "surface-bright": "#ffffff",
+                        "on-primary-fixed-variant": "#450074",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#c683ff",
+                        "surface-container-high": "#e0e0e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "sm": "0.375rem",
+                        "md": "0.75rem",
+                        "lg": "1rem",
+                        "xl": "1.25rem",
+                        "2xl": "1.5rem",
+                        "3xl": "2rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #f5f5f5;
+            color: theme('colors.on-surface');
+            font-family: theme('fontFamily.body');
+        }
+        .ghost-border {
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 1rem;
+        }
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(24px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            border-left: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 1.25rem;
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, theme('colors.primary'), theme('colors.primary-dim'));
+            border-radius: 1rem;
+        }
+        .postprocess-btn.active {
+            background-color: rgba(147, 51, 234, 0.15);
+            border-color: theme('colors.primary');
+            color: theme('colors.primary');
+        }
+        .aspect-btn.active {
+            background-color: rgba(147, 51, 234, 0.15);
+            border-color: theme('colors.primary');
+        }
+        .aspect-btn.active .aspect-box {
+            border-color: theme('colors.primary');
+        }
+        .aspect-btn.active span {
+            color: theme('colors.primary');
+        }
+        .history-card {
+            transition: all 0.3s ease;
+            border-radius: 1.25rem;
+            min-width: 0;
+            width: 100%;
+        }
+        .history-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(147, 51, 234, 0.15);
+            z-index: 5;
+        }
+        .history-card-frame {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            overflow: hidden;
+            border-radius: inherit;
+        }
+        .history-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-auto-rows: auto;
+            align-items: start;
+            align-content: start;
+        }
+        .history-scroll {
+            flex: 1 1 0;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+        .history-media {
+            position: absolute;
+            inset: 0;
+        }
+        .history-media img,
+        .history-media video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        @media (max-width: 900px) {
+            .history-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        .upload-zone {
+            border: 2px dashed rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            border-radius: 1rem;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #9333ea;
+            background-color: rgba(147, 51, 234, 0.05);
+        }
+        .preview-frame {
+            width: min(100%, 716px);
+            height: min(100%, 716px);
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .preview-frame img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+	        .spinner {
+	            animation: spin 1s linear infinite;
+	        }
+	        .brand-logo {
+	            font-family: "Space Grotesk", "Microsoft YaHei", sans-serif;
+	            font-weight: 800;
+	            letter-spacing: 0.02em;
+	            background: linear-gradient(135deg, #7c3aed 0%, #ec4899 48%, #06b6d4 100%);
+	            -webkit-background-clip: text;
+	            background-clip: text;
+	            color: transparent;
+	            filter: drop-shadow(0 8px 18px rgba(147, 51, 234, 0.18));
+	        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="overflow-hidden bg-background text-on-surface antialiased h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(0,0,0,0.1)] h-16 flex justify-between items-center gap-4 px-4 md:px-10">
+<div class="flex items-center gap-6 min-w-0 flex-1">
+<div class="brand-logo text-xl md:text-2xl shrink-0">孔春春AI工坊</div>
+<nav class="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap font-['Space_Grotesk'] tracking-tight">
+<a class="text-purple-600 border-b-2 border-purple-600 pb-1 font-bold duration-300 ease-out active:scale-95 cursor-pointer" id="nav-generate-top">图像生成</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/analyze">图片反推</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/video">视频生成</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" id="nav-history">作品库</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/templates">提示词模板</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/chat?mode=chat">文案生成</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/chat/history?type=chat">文案历史</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/chat/history?type=agent">助手历史</a>
+<a class="text-gray-600 hover:text-gray-900 font-bold transition-colors duration-300 ease-out active:scale-95 cursor-pointer" href="/profile">个人中心</a>
+</nav>
+</div>
+<div class="flex items-center gap-4 shrink-0">
+	<a href="/api/logout" class="text-gray-500 hover:text-purple-600 text-sm flex items-center gap-1 transition-colors">
+	    <span class="material-symbols-outlined text-[16px]">logout</span>
+	    退出
+	</a>
+	<span id="status-indicator" class="text-xs text-gray-500 flex items-center gap-1">
+	<span class="material-symbols-outlined text-[14px]">cloud</span>
+	API: 检测中...
+	</span>
+	</div>
+</header>
+
+<!-- Main Workspace Layout -->
+<div class="flex flex-1 pt-16 h-full w-full">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col py-6 gap-2 fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-white border-r border-gray-200 z-40">
+<!-- 积分显示 -->
+<div class="px-6 mb-4">
+<div class="bg-gradient-to-r from-purple-50 to-cyan-50 rounded-2xl p-4 ghost-border">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-purple-500">stars</span>
+<span class="font-headline font-semibold text-gray-800">积分余额</span>
+</div>
+<span class="text-2xl font-bold text-purple-600" id="credits-display">50</span>
+</div>
+<div class="mt-2 text-xs text-gray-500">每次生成消耗 10 积分</div>
+</div>
+</div>
+
+<!-- 积分兑换说明（可收缩） -->
+<div class="px-6 mb-4">
+<div class="bg-gray-50 rounded-2xl ghost-border" id="credits-exchange-box">
+<div class="p-3 flex items-center justify-between cursor-pointer" id="credits-exchange-header">
+<h4 class="font-headline text-sm font-semibold text-gray-700 flex items-center gap-1">
+<span class="material-symbols-outlined text-pink-500 text-[16px]">favorite</span>
+积分兑换说明
+</h4>
+<span class="material-symbols-outlined text-gray-400 transition-transform" id="exchange-toggle-icon">expand_more</span>
+</div>
+<div class="hidden px-3 pb-3 text-xs text-gray-600" id="credits-exchange-content">
+<div class="space-y-2 mb-2">
+<div class="flex items-center justify-between py-1 border-b border-gray-200">
+<span class="text-gray-700">亲亲</span>
+<span class="text-purple-600 font-semibold">+50 积分/次</span>
+</div>
+<div class="flex items-center justify-between py-1 border-b border-gray-200">
+<span class="text-gray-700">拥抱</span>
+<span class="text-purple-600 font-semibold">+100 积分/次</span>
+</div>
+<div class="flex items-center justify-between py-1 border-b border-gray-200">
+<span class="text-gray-700">牵手</span>
+<span class="text-purple-600 font-semibold">+30 积分/次</span>
+</div>
+<div class="flex items-center justify-between py-1">
+<span class="text-gray-700">陪伴聊天</span>
+<span class="text-purple-600 font-semibold">+20 积分/次</span>
+</div>
+</div>
+<p class="text-purple-500 font-medium text-center">专属福利，请珍惜使用~</p>
+</div>
+</div>
+</div>
+
+<!-- 申请积分 -->
+<div class="px-6 mb-4">
+<div class="bg-white rounded-2xl ghost-border p-4">
+<h4 class="font-headline text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-green-500 text-[16px]">add_circle</span>
+申请积分
+</h4>
+<div class="space-y-3">
+<!-- 种类选择 -->
+<div>
+<label class="text-xs text-gray-500 mb-1 block">兑换种类</label>
+<select id="exchange-type" class="w-full bg-gray-50 rounded-xl px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-purple-400 focus:outline-none ghost-border">
+<option value="">请选择种类</option>
+<option value="亲亲" data-value="50">亲亲 (+50积分/次)</option>
+<option value="拥抱" data-value="100">拥抱 (+100积分/次)</option>
+<option value="牵手" data-value="30">牵手 (+30积分/次)</option>
+<option value="陪伴聊天" data-value="20">陪伴聊天 (+20积分/次)</option>
+</select>
+</div>
+<!-- 次数输入 -->
+<div>
+<label class="text-xs text-gray-500 mb-1 block">次数</label>
+<input type="number" id="exchange-count" min="1" max="10" value="1" class="w-full bg-gray-50 rounded-xl px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-purple-400 focus:outline-none ghost-border"/>
+</div>
+<!-- 预计获得积分 -->
+<div class="bg-purple-50 rounded-xl px-3 py-2 flex items-center justify-between">
+<span class="text-xs text-gray-600">预计获得积分</span>
+<span class="text-sm font-bold text-purple-600" id="preview-credits">0</span>
+</div>
+<!-- 提交按钮 -->
+<button id="submit-exchange" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-xl font-semibold transition-colors flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]">send</span>
+提交审核
+</button>
+</div>
+</div>
+</div>
+
+<!-- 老公爱的支持 - 底部 -->
+<div class="absolute bottom-6 px-6 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center ghost-border text-cyan-500">
+<span class="material-symbols-outlined">memory</span>
+</div>
+<div>
+<h2 class="font-headline font-semibold text-gray-800">老公爱的支持</h2>
+<p class="text-xs text-gray-500 font-label">V4.2 Active</p>
+</div>
+</div>
+</div>
+</nav>
+
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 flex flex-col md:flex-row relative bg-white h-full overflow-hidden" id="main-content">
+<!-- Central Canvas Area -->
+<div class="flex-1 flex flex-col p-6 lg:p-8 relative" id="workspace-panel">
+<!-- Output Preview Display Box -->
+<div class="flex-1 w-full rounded-2xl flex items-center justify-center relative overflow-hidden group bg-gray-50" id="preview-container">
+<div class="preview-frame relative flex items-center justify-center">
+<div id="empty-state" class="text-center absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-6xl text-gray-300">image</span>
+<p class="text-gray-400 mt-4 font-label">输入提示词开始生成</p>
+</div>
+<img id="preview-image" alt="Generated Image" class="drop-shadow-2xl z-10 transition-transform duration-500 ease-out hidden" src=""/>
+</div>
+<!-- Floating Actions on Canvas Hover -->
+<div class="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" id="image-actions">
+<button class="bg-white/80 backdrop-blur-md p-2 rounded-full text-gray-600 hover:text-purple-600 transition-colors ghost-border shadow-lg" id="btn-use-as-ref" title="用作参考图">
+<span class="material-symbols-outlined text-lg">image</span>
+</button>
+<button class="bg-white/80 backdrop-blur-md p-2 rounded-full text-gray-600 hover:text-purple-600 transition-colors ghost-border shadow-lg" id="btn-download" title="下载图片">
+<span class="material-symbols-outlined text-lg">download</span>
+</button>
+<button class="bg-white/80 backdrop-blur-md p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors ghost-border shadow-lg" id="btn-favorite" title="收藏图片">
+<span class="material-symbols-outlined text-lg" id="favorite-icon">favorite</span>
+</button>
+<button class="bg-white/80 backdrop-blur-md p-2 rounded-full text-gray-600 hover:text-purple-600 transition-colors ghost-border shadow-lg" id="btn-fullscreen" title="全屏显示">
+<span class="material-symbols-outlined text-lg">open_in_full</span>
+</button>
+</div>
+<!-- Ambient Glow behind image -->
+<div class="absolute inset-0 bg-gradient-to-tr from-purple-200/20 via-transparent to-cyan-200/20 blur-[100px] z-0 pointer-events-none"></div>
+</div>
+
+<!-- History Prompt Display (shown when viewing a history item) -->
+<div id="history-prompt-panel" class="mt-4 bg-purple-50/80 backdrop-blur rounded-2xl p-4 z-30 shadow-lg hidden">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold text-purple-600 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lightbulb</span>提示词
+</span>
+<button id="btn-copy-prompt" class="text-xs text-purple-500 hover:text-purple-700 flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>复制
+</button>
+</div>
+<p id="history-prompt-text" class="text-xs text-gray-700 leading-relaxed break-words"></p>
+<div id="history-prompt-meta" class="mt-2 flex items-center gap-3 text-[11px] text-gray-400"></div>
+</div>
+
+<!-- Prompt Input Section (Bottom) -->
+<div class="mt-8 glass-panel rounded-2xl p-4 z-30 shadow-lg">
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between text-xs font-label text-gray-500 px-1">
+<span id="generation-status" class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                就绪
+                            </span>
+<span id="credits-cost" class="text-purple-500 font-medium">消耗: 10积分</span>
+</div>
+
+<!-- Image Upload Zone -->
+<div class="mb-3 upload-zone rounded-2xl p-4 cursor-pointer relative" id="upload-zone">
+<input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" id="image-upload"/>
+<div class="flex flex-col items-center justify-center gap-2 text-gray-500" id="upload-placeholder">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">upload</span>
+<span class="text-sm">点击或拖拽上传参考图片 (可选)</span>
+</div>
+<p class="text-xs text-gray-400">参考图可让AI基于您的图片风格进行生成，生成后可点击"用作参考图"继续修改</p>
+</div>
+<div class="hidden flex items-center gap-3" id="upload-preview">
+<img id="uploaded-thumb" class="w-16 h-16 object-cover rounded-xl"/>
+<span class="text-sm text-purple-600">已上传</span>
+<button type="button" class="ml-auto text-gray-400 hover:text-red-500" id="clear-upload">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+
+<div class="relative flex items-end gap-3">
+<div class="flex-1 bg-white rounded-2xl ghost-border focus-within:border-purple-400 focus-within:shadow-[0_0_15px_rgba(147,51,234,0.1)] transition-all duration-300 p-1">
+<textarea id="prompt-input" class="w-full bg-transparent border-none text-gray-800 text-sm focus:ring-0 resize-none h-16 p-3 placeholder:text-gray-400 font-body" placeholder="描述您想要生成的图片内容，按 Enter 发送..."></textarea>
+</div>
+<button id="btn-generate" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-2xl font-headline font-bold flex items-center justify-center gap-2 h-[72px] shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-purple-400">
+                                发送
+                                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- History Panel (Hidden by default) -->
+<div class="flex-1 min-h-0 flex flex-col p-6 lg:p-8 relative hidden overflow-hidden" id="history-panel">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-headline text-xl text-gray-800">历史记录</h2>
+<button class="text-gray-500 hover:text-gray-800" id="btn-refresh-history">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+</div>
+<div class="history-scroll custom-scrollbar">
+<div class="history-grid grid gap-4" id="history-grid">
+    <!-- History items will be loaded here -->
+</div>
+</div>
+</div>
+
+<!-- Right Control Panel -->
+<aside class="w-full md:w-[320px] bg-white h-full flex flex-col border-l border-gray-200 z-30 relative overflow-y-auto custom-scrollbar">
+<div class="p-6 flex flex-col gap-8">
+<!-- Panel Header -->
+<div class="flex items-center">
+<h3 class="font-headline font-semibold text-lg text-gray-800">图片设置</h3>
+</div>
+
+<!-- Aspect Ratio Control -->
+<div class="flex flex-col gap-3">
+<label class="font-label text-sm text-gray-600 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">aspect_ratio</span>
+                            纵横比
+                        </label>
+<div class="grid grid-cols-3 gap-2" id="aspect-ratio-group">
+<button class="aspect-btn bg-white p-3 rounded-2xl flex flex-col items-center gap-1 ghost-border hover:bg-gray-50 transition-colors active" data-ratio="1:1">
+<div class="aspect-box w-4 h-4 border border-gray-400 rounded-xl"></div>
+<span class="text-xs font-medium text-gray-700">1:1</span>
+</button>
+<button class="aspect-btn bg-white p-3 rounded-2xl flex flex-col items-center gap-1 ghost-border hover:bg-gray-50 transition-colors" data-ratio="4:3">
+<div class="aspect-box w-5 h-4 border border-gray-400 rounded-xl"></div>
+<span class="text-xs font-medium text-gray-700">4:3</span>
+</button>
+<button class="aspect-btn bg-white p-3 rounded-2xl flex flex-col items-center gap-1 ghost-border hover:bg-gray-50 transition-colors" data-ratio="16:9">
+<div class="aspect-box w-6 h-3 border border-gray-400 rounded-xl"></div>
+<span class="text-xs font-medium text-gray-700">16:9</span>
+</button>
+</div>
+</div>
+
+<!-- Model Selection -->
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<label class="font-label text-sm text-gray-600 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">smart_toy</span>
+                            模型选择
+                        </label>
+<div class="bg-white p-3 rounded-2xl ghost-border flex items-center cursor-pointer hover:bg-gray-50 transition-colors" id="model-selector">
+<select id="model-select" class="w-full bg-transparent text-sm font-medium text-gray-800 focus:ring-0 focus:outline-none cursor-pointer">
+<option value="gemini-3.1-flash-image-preview-0.5k" selected>Gemini Flash 0.5K (快速)</option>
+<option value="gemini-3.1-flash-image-preview-2k">Gemini Flash 2K (标准)</option>
+<option value="gemini-3.1-flash-image-preview-4k">Gemini Flash 4K (高清)</option>
+<option value="gpt-image-1.5">GPT Image 1.5 (专业)</option>
+</select>
+</div>
+</div>
+</div>
+
+<!-- Post-processing Tags -->
+<div class="bg-gray-100 rounded-2xl p-4 flex flex-col gap-3 relative overflow-hidden">
+<div class="absolute -top-4 -right-4 w-16 h-16 bg-cyan-200/30 rounded-full blur-xl pointer-events-none"></div>
+<h4 class="font-headline text-sm font-medium flex items-center gap-2 text-gray-800">
+<span class="material-symbols-outlined text-cyan-500 text-[18px]">construction</span>
+                            后处理
+                        </h4>
+<div class="flex flex-wrap gap-2" id="postprocess-group">
+<button class="postprocess-btn bg-white px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:text-cyan-500 ghost-border transition-colors" data-tag="2倍放大">2倍放大</button>
+<button class="postprocess-btn bg-white px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:text-cyan-500 ghost-border transition-colors" data-tag="面部增强">面部增强</button>
+<button class="postprocess-btn bg-white px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:text-cyan-500 ghost-border transition-colors" data-tag="去除背景">去除背景</button>
+<button class="postprocess-btn bg-white px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:text-cyan-500 ghost-border transition-colors" data-tag="色彩校正">色彩校正</button>
+<button class="postprocess-btn bg-white px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:text-cyan-500 ghost-border transition-colors" data-tag="锐化">锐化</button>
+</div>
+<div class="flex flex-col gap-2 pt-2 border-t border-gray-200">
+<div class="flex justify-between items-center">
+<label class="font-label text-xs text-gray-500">图片不透明度</label>
+<span class="text-xs text-purple-600 font-mono" id="opacity-value">100%</span>
+</div>
+<input id="opacity-slider" class="w-full accent-purple-600 h-1 bg-gray-200 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:rounded-full cursor-pointer" max="100" min="10" type="range" value="100"/>
+<p class="text-xs text-gray-400 mt-1">仅图生图时生效</p>
+</div>
+</div>
+</div>
+</aside>
+</main>
+</div>
+
+<script>
+// ============================================
+// 状态管理
+// ============================================
+const state = {
+    selectedRatio: '1:1',
+    selectedModel: 'gemini-3.1-flash-image-preview-0.5k',
+    selectedPostprocess: [],
+    uploadedImage: null,
+    uploadedImageBase64: null,
+    currentImagePath: null,
+    isGenerating: false,
+    credits: 50,  // 默认积分
+    currentImageId: null,  // 当前图片ID
+    favorites: [],  // 收藏列表
+    opacity: 100,  // 图片不透明度
+    historyCache: null  // 历史记录缓存
+};
+
+// 积分消耗配置
+const CREDITS_PER_GENERATION = 10;
+
+// ============================================
+// 积分管理 - 从API获取
+// ============================================
+async function loadCredits() {
+    try {
+        const res = await fetch(`${API_BASE}/api/credits`);
+        const data = await res.json();
+        state.credits = data.credits;
+        updateCreditsDisplay();
+    } catch (e) {
+        console.error('获取积分失败');
+        state.credits = 0;
+        updateCreditsDisplay();
+    }
+}
+
+function updateCreditsDisplay() {
+    document.getElementById('credits-display').textContent = state.credits;
+}
+
+// ============================================
+// 收藏管理
+// ============================================
+function loadFavorites() {
+    const saved = localStorage.getItem('ai_favorites');
+    if (saved) {
+        state.favorites = JSON.parse(saved);
+    } else {
+        state.favorites = [];
+    }
+}
+
+function saveFavorites() {
+    localStorage.setItem('ai_favorites', JSON.stringify(state.favorites));
+}
+
+function toggleFavorite(imageId) {
+    const index = state.favorites.indexOf(imageId);
+    if (index > -1) {
+        state.favorites.splice(index, 1);
+    } else {
+        state.favorites.push(imageId);
+    }
+    saveFavorites();
+    updateFavoriteButton(imageId);
+}
+
+function isFavorite(imageId) {
+    return state.favorites.includes(imageId);
+}
+
+function updateFavoriteButton(imageId) {
+    const icon = document.getElementById('favorite-icon');
+    if (isFavorite(imageId)) {
+        icon.style.fontVariationSettings = "'FILL' 1";
+        icon.parentElement.classList.add('text-red-500');
+        icon.parentElement.classList.remove('text-gray-600');
+    } else {
+        icon.style.fontVariationSettings = "'FILL' 0";
+        icon.parentElement.classList.remove('text-red-500');
+        icon.parentElement.classList.add('text-gray-600');
+    }
+}
+
+// ============================================
+// API状态检测
+// ============================================
+async function checkApiStatus() {
+    const statusEl = document.getElementById('status-indicator');
+
+    try {
+        const res = await fetch(`${API_BASE}/api/models`, { timeout: 5000 });
+
+        if (res.ok) {
+            statusEl.innerHTML = `
+                <span class="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
+                <span class="text-green-600">API: 正常</span>
+            `;
+        } else {
+            statusEl.innerHTML = `
+                <span class="material-symbols-outlined text-[14px] text-yellow-500">warning</span>
+                <span class="text-yellow-600">API: 异常</span>
+            `;
+        }
+    } catch (e) {
+        statusEl.innerHTML = `
+            <span class="material-symbols-outlined text-[14px] text-red-500">error</span>
+            <span class="text-red-600">API: 断开</span>
+        `;
+    }
+}
+
+// ============================================
+// API调用
+// ============================================
+const API_BASE = '';
+
+async function readApiResponse(res) {
+    const contentType = res.headers.get('content-type') || '';
+    const text = await res.text();
+
+    if (contentType.includes('application/json')) {
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('服务器返回了损坏的 JSON: ' + e.message);
+        }
+    }
+
+    const plainText = text
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const preview = plainText || text.slice(0, 160).trim() || res.statusText || '非 JSON 响应';
+    throw new Error(`服务器返回了 HTML/文本响应（HTTP ${res.status}）：${preview.slice(0, 220)}`);
+}
+
+async function generateImage() {
+    if (state.isGenerating) return;
+
+    // 检查积分
+    if (state.credits < CREDITS_PER_GENERATION) {
+        alert('积分不足！请用亲亲或拥抱兑换积分~');
+        return;
+    }
+
+    const prompt = document.getElementById('prompt-input').value.trim();
+    if (!prompt) {
+        alert('请输入提示词');
+        return;
+    }
+
+    state.isGenerating = true;
+    updateGeneratingStatus(true);
+
+    try {
+        const res = await fetch(`${API_BASE}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: prompt,
+                model: state.selectedModel,
+                aspect_ratio: state.selectedRatio,
+                postprocess: state.selectedPostprocess,
+                input_image_base64: state.uploadedImageBase64,
+                opacity: state.opacity  // 参考图影响程度
+            })
+        });
+
+        const data = await readApiResponse(res);
+
+        if (!res.ok) {
+            throw new Error(data.detail || data.message || `请求失败（HTTP ${res.status}）`);
+        }
+
+        if (data.success) {
+            // 显示生成的图片
+            const img = document.getElementById('preview-image');
+            img.src = data.image_path;
+            img.classList.remove('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('image-actions').classList.remove('opacity-0');
+            // 新生成的图片隐藏提示词面板
+            document.getElementById('history-prompt-panel').classList.add('hidden');
+
+            state.currentImagePath = data.image_path;
+            state.currentImageId = data.history_item?.id;
+
+            // 更新收藏按钮状态
+            if (state.currentImageId) {
+                updateFavoriteButton(state.currentImageId);
+            }
+
+            // 更新积分显示（从API返回）
+            if (data.remaining_credits !== undefined && data.remaining_credits !== null) {
+                state.credits = data.remaining_credits;
+                updateCreditsDisplay();
+            }
+        } else {
+            throw new Error(data.detail || '生成失败');
+        }
+    } catch (e) {
+        console.error('生成失败:', e);
+        alert('生成失败: ' + e.message);
+    } finally {
+        state.isGenerating = false;
+        updateGeneratingStatus(false);
+    }
+}
+
+async function fetchHistory() {
+    try {
+        const [imgRes, vidRes] = await Promise.all([
+            fetch(`${API_BASE}/api/history`).then(r => r.json()).catch(() => ({history: []})),
+            fetch(`${API_BASE}/api/video-history`).then(r => r.json()).catch(() => ({history: []}))
+        ]);
+        const images = (imgRes.history || []).map(it => ({...it, _type: 'image'}));
+        const videos = (vidRes.history || []).map(it => ({
+            ...it,
+            _type: 'video',
+            image_path: it.video_path,  // 复用字段以兼容收藏/卡片逻辑
+        }));
+        // 按 timestamp 倒序合并
+        const merged = [...images, ...videos].sort((a, b) =>
+            (b.timestamp || '').localeCompare(a.timestamp || ''));
+        state.historyCache = merged;
+        renderHistory(merged);
+    } catch (e) {
+        console.error('加载历史记录失败:', e);
+    }
+}
+
+function renderHistoryFromCache() {
+    if (state.historyCache) {
+        renderHistory(state.historyCache);
+    }
+}
+
+async function uploadImage(file) {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch(`${API_BASE}/api/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            // 显示缩略图
+            const thumb = document.getElementById('uploaded-thumb');
+            thumb.src = data.path;
+
+            document.getElementById('upload-placeholder').classList.add('hidden');
+            document.getElementById('upload-preview').classList.remove('hidden');
+
+            // 转换为base64用于生成
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                state.uploadedImageBase64 = e.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
+
+            state.uploadedImage = data.path;
+        }
+    } catch (e) {
+        console.error('上传失败:', e);
+    }
+}
+
+function openFullscreen() {
+    const img = document.getElementById('preview-image');
+    if (!img.src || img.classList.contains('hidden')) {
+        alert('请先生成图片');
+        return;
+    }
+
+    // 创建全屏模态框
+    const modal = document.createElement('div');
+    modal.id = 'fullscreen-modal';
+    modal.className = 'fixed inset-0 z-[100] bg-black/90 flex items-center justify-center';
+    modal.innerHTML = `
+        <img src="${img.src}" class="max-w-[90vw] max-h-[90vh] object-contain rounded-2xl"/>
+        <button class="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/40 transition-colors">
+            <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+    `;
+
+    // 点击关闭
+    modal.addEventListener('click', () => {
+        modal.remove();
+    });
+
+    document.body.appendChild(modal);
+}
+
+function downloadImage() {
+    if (!state.currentImagePath) {
+        alert('请先生成图片');
+        return;
+    }
+
+    // 获取图片数据并下载
+    fetch(state.currentImagePath)
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const filename = state.currentImagePath.split('/').pop() || 'generated_image.png';
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+            console.error('下载失败:', err);
+            // 备用方案：直接打开链接
+            window.open(state.currentImagePath, '_blank');
+        });
+}
+
+// 将当前图片用作参考图
+async function useAsReferenceImage() {
+    if (!state.currentImagePath) {
+        alert('请先生成图片');
+        return;
+    }
+
+    try {
+        // 获取图片数据
+        const response = await fetch(state.currentImagePath);
+        const blob = await response.blob();
+
+        // 转换为base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            state.uploadedImageBase64 = e.target.result.split(',')[1];
+            state.uploadedImage = state.currentImagePath;
+
+            // 更新上传区域显示
+            const thumb = document.getElementById('uploaded-thumb');
+            thumb.src = state.currentImagePath;
+            document.getElementById('upload-placeholder').classList.add('hidden');
+            document.getElementById('upload-preview').classList.remove('hidden');
+
+            // 提示用户
+            alert('已将当前图片设为参考图，修改提示词后可继续生成');
+        };
+        reader.readAsDataURL(blob);
+    } catch (err) {
+        console.error('设置参考图失败:', err);
+        alert('设置参考图失败，请重试');
+    }
+}
+
+// ============================================
+// UI更新
+// ============================================
+function updateGeneratingStatus(isGenerating) {
+    const status = document.getElementById('generation-status');
+    const btn = document.getElementById('btn-generate');
+
+    if (isGenerating) {
+        status.innerHTML = `<span class="material-symbols-outlined text-[14px] spinner">progress_activity</span> 生成中，预计耗时 8s...`;
+        status.classList.add('text-tertiary');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="material-symbols-outlined spinner">progress_activity</span> 生成中...`;
+    } else {
+        status.innerHTML = `<span class="material-symbols-outlined text-[14px]">auto_awesome</span> 就绪`;
+        status.classList.remove('text-tertiary');
+        btn.disabled = false;
+        btn.innerHTML = `立即生成 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>`;
+    }
+}
+
+function renderHistory(history) {
+    const grid = document.getElementById('history-grid');
+    grid.innerHTML = '';
+
+    if (history.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center text-gray-400 py-8">暂无历史记录</div>`;
+        return;
+    }
+
+    // 分离收藏和非收藏
+    const favorites = history.filter(item => isFavorite(item.id));
+    const others = history.filter(item => !isFavorite(item.id));
+
+    // 收藏区域标题
+    if (favorites.length > 0) {
+        const favTitle = document.createElement('div');
+        favTitle.className = 'col-span-full mb-2';
+        favTitle.innerHTML = `<h3 class="text-sm font-semibold text-gray-700 flex items-center gap-1"><span class="material-symbols-outlined text-red-500 text-[16px]" style="font-variation-settings: 'FILL' 1;">favorite</span> 我的收藏</h3>`;
+        grid.appendChild(favTitle);
+
+        // 收藏作品横向展示（一行4个）
+        favorites.forEach(item => {
+            const card = createHistoryCard(item, true);
+            grid.appendChild(card);
+        });
+
+        // 分隔线
+        if (others.length > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'col-span-full mt-4 mb-2 border-t border-gray-200';
+            grid.appendChild(divider);
+
+            const otherTitle = document.createElement('div');
+            otherTitle.className = 'col-span-full mb-2';
+            otherTitle.innerHTML = `<h3 class="text-sm font-semibold text-gray-700">其他作品</h3>`;
+            grid.appendChild(otherTitle);
+        }
+    }
+
+    // 其他历史记录
+    others.forEach(item => {
+        const card = createHistoryCard(item, false);
+        grid.appendChild(card);
+    });
+}
+
+function createHistoryCard(item, isFav) {
+    const card = document.createElement('div');
+    card.className = 'history-card bg-white rounded-2xl overflow-hidden ghost-border cursor-pointer relative';
+
+    const isItemFavorite = isFavorite(item.id);
+    const favIcon = isItemFavorite ?
+        `<button class="fav-btn material-symbols-outlined text-red-500 text-lg absolute top-2 right-2 bg-white/80 rounded-full p-1.5 shadow hover:bg-white transition-colors" style="font-variation-settings: 'FILL' 1;" data-id="${item.id}">favorite</button>` :
+        `<button class="fav-btn material-symbols-outlined text-gray-400 text-lg absolute top-2 right-2 bg-white/80 rounded-full p-1.5 shadow hover:text-red-500 hover:bg-white transition-colors" data-id="${item.id}">favorite</button>`;
+
+    const isVideo = item._type === 'video';
+    const mediaHtml = isVideo
+        ? `<div class="history-media bg-gray-100">
+           <video src="${item.video_path}" muted preload="metadata" playsinline></video>
+           <span class="material-symbols-outlined absolute top-2 left-2 bg-black/50 text-white text-[14px] rounded-full p-1" style="font-variation-settings: 'FILL' 1;">movie</span>
+           </div>`
+        : `<div class="history-media bg-gray-100">
+           <img src="${item.image_path}" alt="${(item.prompt||'').slice(0, 30)}"/>
+           </div>`;
+
+    const modelTag = isVideo ? '视频' : (item.model || '').split('-')[0];
+
+    card.innerHTML = `
+        <div class="history-card-frame">
+            ${mediaHtml}
+            ${favIcon}
+            <button class="card-download-btn material-symbols-outlined absolute top-2 left-2 bg-white/85 backdrop-blur rounded-full p-1.5 text-gray-600 hover:text-purple-600 shadow transition-colors" title="下载图片" data-path="${item.image_path || item.video_path}">download</button>
+            <div class="absolute inset-x-0 bottom-0 p-3 pt-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent text-white">
+                <p class="text-xs truncate">${(item.prompt||'').slice(0, 50)}...</p>
+                <div class="flex items-center justify-between mt-1 gap-2">
+                    <span class="text-[11px] text-white/75 truncate">${item.timestamp}</span>
+                    <span class="text-[11px] text-white/90 shrink-0">${modelTag}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 收藏按钮点击事件
+    const favBtn = card.querySelector('.fav-btn');
+    favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFavorite(item.id);
+        renderHistoryFromCache(); // 直接刷新显示，不重新请求API
+    });
+
+    // 下载按钮点击事件
+    const dlBtn = card.querySelector('.card-download-btn');
+    dlBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const path = e.target.dataset.path;
+        if (!path) return;
+        try {
+            const res = await fetch(path);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = path.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('下载失败:', err);
+            window.open(path, '_blank');
+        }
+    });
+
+    card.addEventListener('click', (e) => {
+        // 如果点击的是收藏按钮，不触发卡片点击
+        if (e.target.classList.contains('fav-btn')) return;
+
+        if (isVideo) {
+            // 视频在弹层里直接播放
+            openVideoModal(item.video_path, item.prompt || '');
+            return;
+        }
+
+        // 点击历史记录，显示该图片
+        document.getElementById('preview-image').src = item.image_path;
+        document.getElementById('preview-image').classList.remove('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('image-actions').classList.remove('opacity-0');
+        state.currentImagePath = item.image_path;
+        state.currentImageId = item.id;
+        updateFavoriteButton(item.id);
+
+        // 显示提示词面板
+        const promptPanel = document.getElementById('history-prompt-panel');
+        const promptText = document.getElementById('history-prompt-text');
+        const promptMeta = document.getElementById('history-prompt-meta');
+        if (item.prompt) {
+            promptText.textContent = item.prompt;
+            promptPanel.classList.remove('hidden');
+            let metaHtml = '<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span>' + item.timestamp + '</span>';
+            if (item.model) metaHtml += '<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">auto_awesome</span>' + item.model + '</span>';
+            if (item.size) metaHtml += '<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">crop</span>' + item.size + '</span>';
+            promptMeta.innerHTML = metaHtml;
+        } else {
+            promptPanel.classList.add('hidden');
+        }
+
+        // 切换到工作区视图
+        showWorkspace();
+    });
+
+    return card;
+}
+
+function openVideoModal(src, caption) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <video src="${src}" class="max-w-[90vw] max-h-[85vh] rounded-2xl" controls autoplay></video>
+        <button class="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/40 transition-colors">
+            <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+    `;
+    modal.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'VIDEO') modal.remove();
+    });
+    document.body.appendChild(modal);
+}
+
+function showWorkspace() {
+    document.getElementById('workspace-panel').classList.remove('hidden');
+    document.getElementById('history-panel').classList.add('hidden');
+
+    // 更新顶部导航样式
+    document.getElementById('nav-generate-top').classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
+    document.getElementById('nav-generate-top').classList.remove('text-gray-600');
+    document.getElementById('nav-history').classList.remove('text-purple-600', 'border-b-2', 'border-purple-600');
+    document.getElementById('nav-history').classList.add('text-gray-600');
+}
+
+function showHistory() {
+    document.getElementById('workspace-panel').classList.add('hidden');
+    document.getElementById('history-panel').classList.remove('hidden');
+    fetchHistory();
+
+    // 更新顶部导航样式
+    document.getElementById('nav-history').classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
+    document.getElementById('nav-history').classList.remove('text-gray-600');
+    document.getElementById('nav-generate-top').classList.remove('text-purple-600', 'border-b-2', 'border-purple-600');
+    document.getElementById('nav-generate-top').classList.add('text-gray-600');
+}
+
+// ============================================
+// 事件绑定
+// ============================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // 验证登录状态
+    try {
+        const res = await fetch(`${API_BASE}/api/verify`);
+        const data = await res.json();
+        if (!data.valid) {
+            window.location.href = '/login';
+            return;
+        }
+        // 显示用户名
+        const statusIndicator = document.getElementById('status-indicator');
+        statusIndicator.innerHTML = `<span class="material-symbols-outlined text-[14px]">account_circle</span> ${data.username}`;
+    } catch (e) {
+        window.location.href = '/login';
+        return;
+    }
+
+    // 加载积分
+    loadCredits();
+
+    // 加载收藏
+    loadFavorites();
+
+    // 积分兑换收缩/展开
+    document.getElementById('credits-exchange-header').addEventListener('click', () => {
+        const content = document.getElementById('credits-exchange-content');
+        const icon = document.getElementById('exchange-toggle-icon');
+        content.classList.toggle('hidden');
+        icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+
+    // 申请积分逻辑
+    const exchangeTypeSelect = document.getElementById('exchange-type');
+    const exchangeCountInput = document.getElementById('exchange-count');
+    const previewCredits = document.getElementById('preview-credits');
+    const submitExchangeBtn = document.getElementById('submit-exchange');
+
+    // 积分兑换配置
+    const exchangeRates = {
+        '亲亲': 50,
+        '拥抱': 100,
+        '牵手': 30,
+        '陪伴聊天': 20
+    };
+
+    // 更新预计积分
+    function updatePreviewCredits() {
+        const type = exchangeTypeSelect.value;
+        const count = parseInt(exchangeCountInput.value, 10) || 0;
+
+        if (type && exchangeRates[type]) {
+            const total = exchangeRates[type] * count;
+            previewCredits.textContent = '+' + total;
+            previewCredits.classList.add('text-green-600');
+            previewCredits.classList.remove('text-purple-600');
+        } else {
+            previewCredits.textContent = '0';
+            previewCredits.classList.remove('text-green-600');
+            previewCredits.classList.add('text-purple-600');
+        }
+    }
+
+    exchangeTypeSelect.addEventListener('change', updatePreviewCredits);
+    exchangeCountInput.addEventListener('input', updatePreviewCredits);
+
+    // 提交审核 - 调用API
+    submitExchangeBtn.addEventListener('click', async () => {
+        const type = exchangeTypeSelect.value;
+        const count = parseInt(exchangeCountInput.value, 10) || 0;
+
+        if (!type) {
+            alert('请选择兑换种类');
+            return;
+        }
+
+        if (count < 1) {
+            alert('次数至少为1');
+            return;
+        }
+
+        if (count > 10) {
+            alert('单次申请最多10次');
+            return;
+        }
+
+        const totalCredits = exchangeRates[type] * count;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/credits/apply`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, count })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert(`申请已提交审核！\n种类: ${type}\n次数: ${count}\n预计积分: +${totalCredits}\n\n请等待管理员审核通过后积分才会增加~`);
+
+                // 重置表单
+                exchangeTypeSelect.value = '';
+                exchangeCountInput.value = 1;
+                previewCredits.textContent = '0';
+                previewCredits.classList.remove('text-green-600');
+                previewCredits.classList.add('text-purple-600');
+            } else {
+                alert(data.message || '提交失败');
+            }
+        } catch (e) {
+            alert('网络错误，请重试');
+        }
+    });
+
+    // 检查是否有从模板页面传递的提示词
+    const selectedPrompt = localStorage.getItem('selected_prompt');
+    if (selectedPrompt) {
+        document.getElementById('prompt-input').value = selectedPrompt;
+        localStorage.removeItem('selected_prompt');
+    }
+
+    // 检查API状态
+    checkApiStatus();
+
+    // 纵横比选择
+    document.querySelectorAll('.aspect-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.aspect-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.selectedRatio = btn.dataset.ratio;
+        });
+    });
+
+    // 模型选择 - 直接使用下拉框的值
+    document.getElementById('model-select').addEventListener('change', (e) => {
+        state.selectedModel = e.target.value;
+    });
+
+    // 回车键发送
+    document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            generateImage();
+        }
+    });
+
+    // 后处理标签选择
+    document.querySelectorAll('.postprocess-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            const tag = btn.dataset.tag;
+
+            if (btn.classList.contains('active')) {
+                if (!state.selectedPostprocess.includes(tag)) {
+                    state.selectedPostprocess.push(tag);
+                }
+            } else {
+                state.selectedPostprocess = state.selectedPostprocess.filter(t => t !== tag);
+            }
+        });
+    });
+
+    // 图片上传
+    const uploadInput = document.getElementById('image-upload');
+    const uploadZone = document.getElementById('upload-zone');
+
+    uploadInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+            uploadImage(e.target.files[0]);
+        }
+    });
+
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files[0]) {
+            uploadImage(e.dataTransfer.files[0]);
+        }
+    });
+
+    // 清除上传图片
+    document.getElementById('clear-upload').addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        state.uploadedImage = null;
+        state.uploadedImageBase64 = null;
+        document.getElementById('upload-placeholder').classList.remove('hidden');
+        document.getElementById('upload-preview').classList.add('hidden');
+        document.getElementById('image-upload').value = '';
+    });
+
+    // 生成按钮
+    document.getElementById('btn-generate').addEventListener('click', generateImage);
+
+    // 历史记录导航
+    document.getElementById('nav-history').addEventListener('click', showHistory);
+    document.getElementById('nav-generate-top').addEventListener('click', showWorkspace);
+
+    // 刷新历史
+    document.getElementById('btn-refresh-history').addEventListener('click', fetchHistory);
+
+    // URL ?tab=history 自动切到作品库（其他页面跳过来）
+    if (new URLSearchParams(window.location.search).get('tab') === 'history') {
+        showHistory();
+    }
+
+    // 用作参考图
+    document.getElementById('btn-use-as-ref').addEventListener('click', useAsReferenceImage);
+
+    // 下载图片
+    document.getElementById('btn-download').addEventListener('click', downloadImage);
+
+    // 收藏图片
+    document.getElementById('btn-favorite').addEventListener('click', () => {
+        if (state.currentImageId) {
+            toggleFavorite(state.currentImageId);
+        } else {
+            alert('请先生成图片');
+        }
+    });
+
+    // 全屏显示
+    document.getElementById('btn-fullscreen').addEventListener('click', openFullscreen);
+
+    // 复制提示词按钮
+    document.getElementById('btn-copy-prompt').addEventListener('click', () => {
+        const text = document.getElementById('history-prompt-text').textContent;
+        if (text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('btn-copy-prompt');
+                btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span>已复制';
+                setTimeout(() => {
+                    btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">content_copy</span>复制';
+                }, 2000);
+            });
+        }
+    });
+
+    // 参考图影响程度滑块
+    document.getElementById('opacity-slider').addEventListener('input', (e) => {
+        state.opacity = parseInt(e.target.value, 10);
+        document.getElementById('opacity-value').textContent = e.target.value + '%';
+    });
+});
+</script>
+
+<style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d0d0d0;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #b0b0b0;
+        }
+    </style>
+</body></html>

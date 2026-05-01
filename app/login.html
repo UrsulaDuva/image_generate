@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>登录 - 孔春春AI工坊</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+    body {
+        background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+        font-family: 'Inter', sans-serif;
+    }
+    .login-card {
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    }
+    .gradient-btn {
+        background: linear-gradient(135deg, #9333ea, #a533ff);
+        border-radius: 1rem;
+        transition: all 0.3s ease;
+    }
+    .gradient-btn:hover {
+        transform: scale(1.02);
+        box-shadow: 0 10px 30px rgba(147, 51, 234, 0.3);
+    }
+    .input-field {
+        border-radius: 1rem;
+        border: 2px solid #e8e8e8;
+        transition: all 0.3s ease;
+    }
+    .input-field:focus {
+        border-color: #9333ea;
+        box-shadow: 0 0 20px rgba(147, 51, 234, 0.1);
+    }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+    .change-password-link {
+        color: #9333ea;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .change-password-link:hover {
+        color: #a533ff;
+        text-decoration: underline;
+    }
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 100;
+        display: none;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-overlay.active {
+        display: flex;
+    }
+    .modal-content {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+    }
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+<div class="login-card w-full max-w-md p-8">
+    <!-- Logo & Title -->
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-purple-600 text-4xl">auto_awesome</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 font-['Space_Grotesk']">孔春春AI工坊</h1>
+        <p class="text-gray-500 mt-2">请登录以继续使用</p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="space-y-4">
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">账号</label>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">person</span>
+                <input type="text" id="username" class="input-field w-full pl-12 pr-4 py-3 outline-none" placeholder="请输入账号" required/>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">密码</label>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
+                <input type="password" id="password" class="input-field w-full pl-12 pr-4 py-3 outline-none" placeholder="请输入密码" required/>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="hidden text-red-500 text-sm text-center py-2 bg-red-50 rounded-xl"></div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="gradient-btn w-full text-white font-semibold py-3 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined">login</span>
+            登录
+        </button>
+    </form>
+
+    <!-- Footer -->
+    <div class="mt-6 text-center text-sm text-gray-400">
+        <p>AI图像生成 · 文案生成 · 提示词模板</p>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="password-modal">
+    <div class="modal-content">
+        <div class="text-center mb-4">
+            <span class="material-symbols-outlined text-purple-600 text-3xl">lock_reset</span>
+            <h2 class="text-lg font-semibold text-gray-800 mt-2">修改密码</h2>
+            <p class="text-sm text-gray-500">请输入账号和旧密码完成修改</p>
+        </div>
+
+        <form id="change-password-form" class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">账号</label>
+                <input type="text" id="cp-username" class="input-field w-full px-4 py-2 outline-none" placeholder="请输入账号" required/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">旧密码</label>
+                <input type="password" id="cp-old-password" class="input-field w-full px-4 py-2 outline-none" placeholder="请输入当前密码" required/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">新密码</label>
+                <input type="password" id="cp-new-password" class="input-field w-full px-4 py-2 outline-none" placeholder="请输入新密码" required/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">确认新密码</label>
+                <input type="password" id="cp-confirm-password" class="input-field w-full px-4 py-2 outline-none" placeholder="请确认新密码" required/>
+            </div>
+
+            <div id="cp-error" class="hidden text-red-500 text-sm text-center"></div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeChangePasswordModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition-colors">
+                    取消
+                </button>
+                <button type="submit" class="flex-1 gradient-btn text-white py-2 font-semibold">
+                    确认修改
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+
+// 登录
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorMsg = document.getElementById('error-message');
+
+    errorMsg.classList.add('hidden');
+
+    try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            sessionStorage.setItem('auth_token', data.token);
+            sessionStorage.setItem('username', username);
+
+            // 根据账号跳转不同页面
+            if (username === 'admin') {
+                window.location.href = '/admin';
+            } else {
+                window.location.href = '/';
+            }
+        } else {
+            errorMsg.textContent = data.message || '登录失败';
+            errorMsg.classList.remove('hidden');
+        }
+    } catch (err) {
+        errorMsg.textContent = '网络错误，请重试';
+        errorMsg.classList.remove('hidden');
+    }
+});
+
+// 修改密码模态框
+function showChangePasswordModal() {
+    document.getElementById('cp-username').value = document.getElementById('username').value.trim();
+    document.getElementById('password-modal').classList.add('active');
+}
+
+function closeChangePasswordModal() {
+    document.getElementById('password-modal').classList.remove('active');
+    document.getElementById('cp-error').classList.add('hidden');
+    document.getElementById('cp-old-password').value = '';
+    document.getElementById('cp-new-password').value = '';
+    document.getElementById('cp-confirm-password').value = '';
+}
+
+// 修改密码
+document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('cp-username').value.trim();
+    const oldPassword = document.getElementById('cp-old-password').value;
+    const newPassword = document.getElementById('cp-new-password').value;
+    const confirmPassword = document.getElementById('cp-confirm-password').value;
+    const errorEl = document.getElementById('cp-error');
+
+    errorEl.classList.add('hidden');
+
+    if (!username) {
+        errorEl.textContent = '请输入账号';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    if (!oldPassword) {
+        errorEl.textContent = '请输入旧密码';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        errorEl.textContent = '两次输入的密码不一致';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        errorEl.textContent = '密码至少6位';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/change-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, old_password: oldPassword, new_password: newPassword })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            alert('密码修改成功！');
+            closeChangePasswordModal();
+        } else {
+            errorEl.textContent = data.message || '修改失败';
+            errorEl.classList.remove('hidden');
+        }
+    } catch (err) {
+        errorEl.textContent = '网络错误';
+        errorEl.classList.remove('hidden');
+    }
+});
+
+// 点击模态框外部关闭
+document.getElementById('password-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'password-modal') {
+        closeChangePasswordModal();
+    }
+});
+
+// 检查是否已登录
+fetch(`${API_BASE}/api/verify`).then(res => res.json())
+.then(data => {
+    if (data.valid) {
+        if (data.username === 'admin') {
+            window.location.href = '/admin';
+        } else {
+            window.location.href = '/';
+        }
+    }
+});
+</script>
+</body>
+</html>

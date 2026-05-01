@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>对话历史 - 孔春春AI工坊</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  body { background: #f5f5f5; color: #333; font-family: Inter, sans-serif; }
+	  .ghost-border { border: 1px solid rgba(0,0,0,0.08); }
+	  .session-card { transition: all .2s ease; }
+	  .session-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(147,51,234,0.12); border-color: #c683ff; }
+	  .brand-logo { font-family:"Space Grotesk","Microsoft YaHei",sans-serif; font-weight:800; letter-spacing:.02em; background:linear-gradient(135deg,#7c3aed,#ec4899 48%,#06b6d4); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 8px 18px rgba(147,51,234,.18)); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(0,0,0,0.1)] h-16 flex justify-between items-center gap-4 px-4 md:px-10">
+  <div class="flex items-center gap-6 min-w-0 flex-1">
+    <div class="brand-logo text-xl md:text-2xl shrink-0">孔春春AI工坊</div>
+    <nav class="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap font-['Space_Grotesk'] tracking-tight">
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/">图像生成</a>
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/analyze">图片反推</a>
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/video">视频生成</a>
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/?tab=history">作品库</a>
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/templates">提示词模板</a>
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/chat?mode=chat">文案生成</a>
+      <a id="chat-history-link" class="text-gray-600 hover:text-gray-900 font-bold" href="/chat/history?type=chat">文案历史</a>
+      <a id="agent-history-link" class="text-gray-600 hover:text-gray-900 font-bold" href="/chat/history?type=agent">助手历史</a>
+      <a class="text-gray-600 hover:text-gray-900 font-bold" href="/profile">个人中心</a>
+    </nav>
+  </div>
+  <a href="/api/logout" class="text-gray-500 hover:text-purple-600 text-sm flex items-center gap-1 shrink-0">
+    <span class="material-symbols-outlined text-[16px]">logout</span> 退出
+  </a>
+</header>
+
+<main class="pt-24 px-10 pb-12 max-w-6xl mx-auto">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800 font-['Space_Grotesk']">对话历史</h1>
+      <p class="text-sm text-gray-500 mt-1">按用户隔离的本地记忆库 · 点击可恢复到对话</p>
+    </div>
+    <a id="new-chat-link" href="/chat?mode=chat" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-2xl font-semibold flex items-center gap-2 shadow-lg">
+      <span class="material-symbols-outlined">add</span> 新建对话
+    </a>
+  </div>
+
+  <div id="empty" class="hidden text-center py-20 text-gray-400">
+    <span class="material-symbols-outlined text-6xl text-gray-300 block mb-3">forum</span>
+    暂无对话记录，<a id="empty-start-link" href="/chat?mode=chat" class="text-purple-600 hover:underline">立即开始</a>
+  </div>
+
+  <div id="list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+</main>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const sessionType = params.get('type') === 'agent' ? 'agent' : 'chat';
+const typeLabel = sessionType === 'agent' ? '助手历史' : '文案历史';
+
+function escapeHtml(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function cleanModelName(name) {
+  if (!name) return '';
+  return name.replace(/^deepseek\/deepseek-?/i, '').replace(/\s*\(free\)\s*/i, '').replace(/-?free$/i, '').trim() || name;
+}
+
+async function load() {
+  document.querySelector('h1').textContent = typeLabel;
+  const chatUrl = '/chat?mode=' + encodeURIComponent(sessionType);
+  document.getElementById('new-chat-link').href = chatUrl;
+  document.getElementById('empty-start-link').href = chatUrl;
+  const activeLink = document.getElementById(sessionType === 'agent' ? 'agent-history-link' : 'chat-history-link');
+  if (activeLink) activeLink.className = 'text-purple-600 border-b-2 border-purple-600 pb-1 font-bold';
+  const inactiveLink = document.getElementById(sessionType === 'agent' ? 'chat-history-link' : 'agent-history-link');
+  if (inactiveLink) inactiveLink.className = 'text-gray-600 hover:text-gray-900 font-bold';
+
+  const r = await fetch('/api/chat/sessions?type=' + encodeURIComponent(sessionType));
+  const data = await r.json();
+  const list = document.getElementById('list');
+  const empty = document.getElementById('empty');
+  const sessions = data.sessions || [];
+  if (sessions.length === 0) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  list.innerHTML = sessions.map(s => `
+    <div class="session-card bg-white ghost-border rounded-2xl p-5 cursor-pointer relative group" onclick="window.location.href='/chat?mode=${encodeURIComponent(sessionType)}&session=${encodeURIComponent(s.id)}'">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-gray-800 truncate">${escapeHtml(s.title || '(无标题)')}</h3>
+          <p class="text-xs text-gray-400 mt-1 font-mono">${escapeHtml(s.id)}</p>
+        </div>
+        <button onclick="event.stopPropagation();delSession('${s.id}')" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity">
+          <span class="material-symbols-outlined text-[20px]">delete</span>
+        </button>
+      </div>
+      <div class="flex items-center gap-3 mt-4 text-xs text-gray-500">
+        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">forum</span>${s.msg_count} 条</span>
+        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">smart_toy</span>${escapeHtml(cleanModelName(s.model) || '-')}</span>
+      </div>
+      <div class="text-xs text-gray-400 mt-2">更新于 ${escapeHtml(s.updated_at || '-')}</div>
+    </div>
+  `).join('');
+}
+
+async function delSession(id) {
+  if (!confirm('确认删除此对话？此操作不可恢复。')) return;
+  await fetch('/api/chat/sessions/' + encodeURIComponent(id) + '?type=' + encodeURIComponent(sessionType), { method: 'DELETE' });
+  load();
+}
+
+load();
+</script>
+</body>
+</html>
