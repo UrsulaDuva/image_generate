@@ -974,6 +974,7 @@ function createHistoryCard(item, isFav) {
             ${mediaHtml}
             ${favIcon}
             <button class="card-download-btn material-symbols-outlined absolute top-2 left-2 bg-white/85 backdrop-blur rounded-full p-1.5 text-gray-600 hover:text-purple-600 shadow transition-colors" title="下载图片" data-path="${item.image_path || item.video_path}">download</button>
+            <button class="card-delete-btn material-symbols-outlined absolute top-2 left-11 bg-white/85 backdrop-blur rounded-full p-1.5 text-gray-600 hover:text-red-500 shadow transition-colors" title="删除作品" data-id="${item.id}" data-type="${isVideo ? 'video' : 'image'}">delete</button>
             <div class="absolute inset-x-0 bottom-0 p-3 pt-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent text-white">
                 <p class="text-xs truncate">${(item.prompt||'').slice(0, 50)}...</p>
                 <div class="flex items-center justify-between mt-1 gap-2">
@@ -1016,9 +1017,45 @@ function createHistoryCard(item, isFav) {
         }
     });
 
+    // 删除按钮点击事件
+    const delBtn = card.querySelector('.card-delete-btn');
+    delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const id = e.currentTarget.dataset.id;
+        const type = e.currentTarget.dataset.type;
+        if (!id) return;
+        const label = type === 'video' ? '视频作品' : '图片作品';
+        if (!confirm(`确定删除这个${label}吗？删除后不可恢复。`)) return;
+        try {
+            const endpoint = type === 'video' ? `/api/video-history/${encodeURIComponent(id)}` : `/api/history/${encodeURIComponent(id)}`;
+            const res = await fetch(endpoint, { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || data.message || '删除失败');
+            }
+            state.historyCache = (state.historyCache || []).filter(x => x.id !== id);
+            state.favorites = state.favorites.filter(x => x !== id);
+            localStorage.setItem('favorites', JSON.stringify(state.favorites));
+            renderHistoryFromCache();
+            if (state.currentImageId === id) {
+                state.currentImageId = null;
+                state.currentImagePath = null;
+                document.getElementById('preview-image').src = '';
+                document.getElementById('preview-image').classList.add('hidden');
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('image-actions').classList.add('opacity-0');
+                document.getElementById('history-prompt-panel').classList.add('hidden');
+            }
+        } catch (err) {
+            console.error('删除失败:', err);
+            alert(err.message || '删除失败，请重试');
+        }
+    });
+
     card.addEventListener('click', (e) => {
-        // 如果点击的是收藏按钮，不触发卡片点击
-        if (e.target.classList.contains('fav-btn')) return;
+        // 如果点击的是卡片工具按钮，不触发卡片点击
+        if (e.target.closest('button')) return;
 
         if (isVideo) {
             // 视频在弹层里直接播放
